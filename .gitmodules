@@ -1,0 +1,9 @@
+[submodule ".github/actions/dorny/paths-filter"]
+	path = .github/actions/dorny/paths-filter
+	url = https://github.com/dorny/paths-filter
+[submodule ".github/actions/actions-rs/toolchain"]
+	path = .github/actions/actions-rs/toolchain
+	url = https://github.com/actions-rs/toolchain
+[submodule ".github/actions/actions-rs/cargo"]
+	path = .github/actions/actions-rs/cargo
+	url = https://github.com/actions-rs/cargo

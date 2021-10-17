@@ -1,0 +1,18 @@
+name: PR Target against main
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+jobs:
+  dump:
+    name: Dump
+    runs-on: ubuntu-latest
+    env:
+      GITHUB: ${{toJson(github)}}
+    steps:
+      - name: Dump
+        shell: bash
+        run: |
+          echo ${GITHUB}

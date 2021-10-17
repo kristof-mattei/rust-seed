@@ -1,0 +1,20 @@
+name: PR Closed against main
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+jobs:
+  dump:
+    if: ${{ github.event.pull_request.merged }}
+    name: Dump
+    runs-on: ubuntu-latest
+    env:
+      GITHUB: ${{toJson(github)}}
+    steps:
+      - name: Dump
+        shell: bash
+        run: |
+          echo ${GITHUB}
