@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use env_logger::Env;
 use futures::{stream::FuturesUnordered, StreamExt};
-use log::{info};
+use log::info;
 
 use structopt::StructOpt;
 
@@ -23,16 +23,12 @@ struct Opt {
     some_value: PathBuf,
 }
 
-async fn something_to_await(_: PathBuf) {
-    ()
-}
+async fn something_to_await(_: PathBuf) {}
 
 async fn run_app() {
     env_logger::Builder::from_env(Env::default().default_filter_or("INFO")).init();
 
-    let Opt {
-        some_value,
-    } = Opt::from_args();
+    let Opt { some_value } = Opt::from_args();
 
     let mut tasks = FuturesUnordered::new();
 

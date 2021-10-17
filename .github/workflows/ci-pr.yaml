@@ -4,9 +4,10 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches-ignore:
-      - main
+  # I need to find out a way to kill the push triggered event when there's a matching pull_request trigger
+  # push:
+  #   branches-ignore:
+  #     - main
 env:
   CARGO_TERM_COLOR: always
   # Use docker.io for Docker Hub if empty
@@ -19,233 +20,189 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dump:
-    name: Dump
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
-    env:
-      GITHUB: ${{toJson(github)}}
+    outputs:
+      # code: ${{ steps.filter.outputs.code }}
+      code: "true"
     steps:
-      - name: Dump
-        shell: bash
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
+        id: filter
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            code:
+              - "src/*"
+              - "src/**/*"
+              - "TAG"
+              - "*.toml"
+              - Dockerfile
+              - "tests/*"
+              - "tests/**/*"
+
+  cargo-build:
+    name: Cargo build
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+
+      - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
         run: |
-          echo ${GITHUB}
+          echo ${CARGO_HOME}
 
-  # changes:
-  #   name: Detect changes
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     # code: ${{ steps.filter.outputs.code }}
-  #     code: "true"
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
-  #     - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
-  #       id: filter
-  #       with:
-  #         token: ${{ secrets.GITHUB_TOKEN }}
-  #         filters: |
-  #           code:
-  #             - "src/*"
-  #             - "src/**/*"
-  #             - "TAG"
-  #             - "*.toml"
-  #             - Dockerfile
-  #             - "tests/*"
-  #             - "tests/**/*"
+      - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
+        run: |
+          echo ${CARGO_HOME}
 
-  # cargo-build:
-  #   name: Cargo build
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   strategy:
-  #     matrix:
-  #       rust:
-  #         - stable
-  #         # - beta
-  #         # - nightly
-  #         # - 1.0.0
+      - name: Test
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: test
+          args: --verbose
 
-  #       include:
-  #         - rust: stable
-  #           features: ""
-  #         # - rust: beta
-  #         #   features: ""
-  #         # - rust: nightly
-  #         #   features: ""
-  #         # - rust: 1.0.0
-  #         #   features: '--features "std"'
+  cargo-test:
+    name: Cargo test
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
 
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-  #       with:
-  #         profile: minimal
-  #         toolchain: ${{ matrix.rust }}
-  #         override: true
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
-  #     - name: Test
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: test
-  #         args: --verbose ${{ matrix.features }}
-
-  # cargo-test:
-  #   name: Cargo test
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   strategy:
-  #     matrix:
-  #       rust:
-  #         - stable
-  #         # - beta
-  #         # - nightly
-  #         # - 1.0.0
-
-  #       include:
-  #         - rust: stable
-  #           features: ""
-  #         # - rust: beta
-  #         #   features: ""
-  #         # - rust: nightly
-  #         #   features: ""
-  #         # - rust: 1.0.0
-  #         #   features: '--features "std"'
-
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
-
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-  #       with:
-  #         profile: minimal
-  #         toolchain: ${{ matrix.rust }}
-  #         override: true
-
-  #     - name: Test
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: test
-  #         args: --verbose ${{ matrix.features }}
+      - name: Test
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: test
+          args: --verbose
 
 
-  # cargo-fmt:
-  #   name: Check formatting
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+  cargo-fmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #         components: rustfmt
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
 
-  #     - name: Fmt
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: fmt
-  #         args: --all -- --check
+      - name: Fmt
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: fmt
+          args: --all -- --check
 
-  # cargo-clippy:
-  #   name: Run Clippy
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+  cargo-clippy:
+    name: Run Clippy
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #         components: clippy
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
 
-  #     - name: Clippy
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: clippy
-  #         args: --all-targets --all-features -- -D warnings
+      - name: Clippy
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: clippy
+          args: --all-targets --all-features -- -D warnings
 
-  # # TODO code coverage here
+  # TODO code coverage here
 
-  # publish:
-  #   name: Build docker container and publish
-  #   needs:
-  #     - cargo-build
-  #     - cargo-test
-  #     - cargo-fmt
-  #     - cargo-clippy
-  #   if: |
-  #       (github.repository == 'Kristof-Mattei/rust-integrity-playground')
-  #       && (github.event_name == 'pull_request')
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #     - name: Log into registry ${{ env.REGISTRY }}
-  #       uses: docker/login-action@v1
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
+  publish:
+    name: Build docker container and publish
+    needs:
+      - cargo-build
+      - cargo-test
+      - cargo-fmt
+      - cargo-clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  #     # TODO validate no changes between github.pull_request.head.sha and the actual current sha (representing the hypothetical merge)
+      # TODO validate no changes between github.pull_request.head.sha and the actual current sha (representing the hypothetical merge)
 
-  #     # Extract metadata (tags, labels) for Docker
-  #     # https://github.com/docker/metadata-action
-  #     - name: Extract Docker metadata
-  #       id: meta
-  #       uses: docker/metadata-action@v3
-  #       with:
-  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-  #         # type=sha,prefix=sha-,format=long
-  #         # don't add type=sha, as that is the sha of the MERGE commit, which is a hypothetical one
-  #         # when the merge actually happens that sha will be different.
-  #         tags: |
-  #           type=edge
-  #           type=raw,prefix=sha-,value=${{ github.event.pull_request.head.sha }}
-  #           type=sha,prefix=SEARCH-FOR-ME-,format=long
-  #           type=ref,event=branch
-  #           type=ref,event=pr
-  #           type=semver,pattern={{version}}
-  #           type=semver,pattern={{major}}.{{minor}}
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=edge
+            type=ref,event=branch
+            type=ref,event=pr
 
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v2
-  #       with:
-  #         context: .
-  #         # push the created docker image when it's the tip of a PR
-  #         # this container is THE artifact, and we will re-tag it
-  #         # once the PR has been accepted
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: ${{ steps.meta.outputs.labels }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          # push the created docker image when it's the tip of a PR
+          # this container is THE artifact, and we will re-tag it
+          # once the PR has been accepted
+          push: |
+            (github.repository == 'Kristof-Mattei/rust-integrity-playground')
+            && (github.event_name == 'pull_request')
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
