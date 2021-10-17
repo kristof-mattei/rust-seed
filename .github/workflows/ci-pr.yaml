@@ -63,6 +63,7 @@ jobs:
       - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
         run: |
           echo ${CARGO_HOME}
+          which cargo
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
@@ -74,6 +75,7 @@ jobs:
       - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
         run: |
           echo ${CARGO_HOME}
+          which cargo
 
       - name: Test
         uses: ./.github/actions/actions-rs/cargo
@@ -134,7 +136,7 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  cargo-clippy:
+  cargo-clippy-and-report:
     name: Run Clippy
     runs-on: ubuntu-latest
     needs:
@@ -154,34 +156,18 @@ jobs:
           override: true
           components: clippy
 
+      # we may want to remove this if clippy-check also reports to the
+      # logs in GitHub actions
       - name: Clippy
         uses: ./.github/actions/actions-rs/cargo
         with:
           command: clippy
           args: --all-targets --all-features -- -D warnings
 
-  clippy-check:
-    runs-on: ubuntu-latest
-    needs:
-      - changes
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Set up toolchain
-        uses: ./.github/actions/actions-rs/toolchain
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: clippy
-
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
-
+          args: --all-targets --all-features -- -D warnings
 
   # TODO code coverage here
 
