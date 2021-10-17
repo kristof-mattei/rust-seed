@@ -59,12 +59,6 @@ jobs:
         with:
           submodules: recursive
 
-
-      - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
-        run: |
-          echo ${CARGO_HOME}
-          which cargo
-
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
         with:
@@ -74,8 +68,7 @@ jobs:
 
       - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
         run: |
-          echo ${CARGO_HOME}
-          which cargo
+          ls $(which cargo)\..\..
 
       - name: Test
         uses: ./.github/actions/actions-rs/cargo
