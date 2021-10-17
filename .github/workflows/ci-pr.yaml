@@ -68,7 +68,7 @@ jobs:
 
       - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
         run: |
-          ls $(which cargo)/../..
+          ls $HOME/.cargo
 
       - name: Test
         uses: ./.github/actions/actions-rs/cargo
