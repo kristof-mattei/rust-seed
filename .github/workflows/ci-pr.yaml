@@ -66,9 +66,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
-        run: |
-          ls $HOME/.cargo
+      # TODO cache
+      # $HOME/.cargo/registry
+      # and
+      # our current directory + /target
+      # to speed up compilation
 
       - name: Test
         uses: ./.github/actions/actions-rs/cargo
@@ -161,6 +163,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-targets --all-features -- -D warnings
+          name: Clippy report
 
   # TODO code coverage here
 
