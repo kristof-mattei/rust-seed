@@ -177,8 +177,7 @@ jobs:
       - cargo-build
       - cargo-test
       - cargo-fmt
-      - cargo-clippy
-      - clippy-check
+      - cargo-clippy-and-report
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
