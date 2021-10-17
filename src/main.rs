@@ -23,7 +23,9 @@ struct Opt {
     some_value: PathBuf,
 }
 
-async fn something_to_await(_: PathBuf) {}
+async fn something_to_await(_: PathBuf) {
+    todo!("TODO");
+}
 
 async fn run_app() {
     env_logger::Builder::from_env(Env::default().default_filter_or("INFO")).init();

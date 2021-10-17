@@ -7,3 +7,6 @@
 [submodule ".github/actions/actions-rs/cargo"]
 	path = .github/actions/actions-rs/cargo
 	url = https://github.com/actions-rs/cargo
+[submodule ".github/actions/actions-rs/clippy-check"]
+	path = .github/actions/actions-rs/clippy-check
+	url = https://github.com/actions-rs/clippy-check

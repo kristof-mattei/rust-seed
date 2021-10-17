@@ -160,6 +160,28 @@ jobs:
           command: clippy
           args: --all-targets --all-features -- -D warnings
 
+  clippy-check:
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+
+
   # TODO code coverage here
 
   publish:
@@ -169,6 +191,7 @@ jobs:
       - cargo-test
       - cargo-fmt
       - cargo-clippy
+      - clippy-check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
