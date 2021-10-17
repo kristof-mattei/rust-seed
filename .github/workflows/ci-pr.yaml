@@ -16,7 +16,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 concurrency:
-  group: ${{ github.head_ref }}${{ github.ref }}
+  group: pr-${{ github.event.number }} # ${{ github.head_ref }}${{ github.ref }} <- when we expand to non-PRs
   cancel-in-progress: true
 
 jobs:
@@ -68,7 +68,7 @@ jobs:
 
       - name: Dump CARGO_HOME # we're going to use this to cache Cargo, same for the Docker container
         run: |
-          ls $(which cargo)\..\..
+          ls $(which cargo)/../..
 
       - name: Test
         uses: ./.github/actions/actions-rs/cargo
