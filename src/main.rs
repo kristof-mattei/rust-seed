@@ -23,22 +23,19 @@ struct Opt {
     some_value: PathBuf,
 }
 
-
 fn foo() -> &'static str {
     "Foo"
 }
 
 fn bar() -> &'static str {
-    "Baz"
+    "Bar"
 }
-
 
 async fn something_to_await(_: PathBuf) {
     println!("{}", foo());
     println!("{}", bar());
     todo!("TODO");
 }
-
 
 async fn run_app() {
     env_logger::Builder::from_env(Env::default().default_filter_or("INFO")).init();
@@ -66,8 +63,6 @@ async fn run_app() {
 async fn main() {
     run_app().await;
 }
-
-
 
 #[cfg(test)]
 mod tests {
