@@ -148,12 +148,11 @@ jobs:
           cargo install cargo2junit grcov rust-covfix;
           echo "CARGO_OPTIONS"
           echo ${CARGO_OPTIONS}
-          echo $CARGO_OPTIONS
           echo "CARGO_OPTIONS"
-          cargo test --features coverage ${CARGO_OPTIONS} -- -Z unstable-options --format json | cargo2junit > results.xml;
+          cargo install cargo2junit grcov;
+          cargo test ${CARGO_OPTIONS} -- -Z unstable-options --format json | cargo2junit > results.xml;
           zip -0 ccov.zip `find . \( -name "${PROJECT_NAME_UNDERSCORE}*.gc*" \) -print`;
-          grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info;
-          rust-covfix -o lcov_correct.info lcov.info;
+          grcov ccov.zip -s . -t lcov --llvm --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info;
 
       - name: Upload test results
         if: ${{ always() }}
@@ -167,10 +166,10 @@ jobs:
       #   if: ${{ always() }}
       #   uses: codecov/codecov-action@v1
       #   with:
-      #     # required for private repositories:
-      #     # token: ${{ secrets.CODECOV_TOKEN }}
-      #     files: ./lcov_correct.info
-      #     fail_ci_if_error: true
+          # required for private repositories:
+          # token: ${{ secrets.CODECOV_TOKEN }}
+          # files: ./lcov.info
+          # fail_ci_if_error: true
 
   cargo-clippy-and-report:
     name: Run Clippy
