@@ -12,4 +12,4 @@
 	url = https://github.com/actions-rs/clippy-check
 [submodule ".github/actions/EnricoMi/publish-unit-test-result-action"]
 	path = .github/actions/EnricoMi/publish-unit-test-result-action
-	url = https://github.com/EnricoMi/publish-unit-test-result-action
+	url = https://github.com/Kristof-Mattei/publish-unit-test-result-action
