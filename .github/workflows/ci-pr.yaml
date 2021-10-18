@@ -83,8 +83,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
 
       - name: Build
         uses: ./.github/actions/actions-rs/cargo
@@ -129,8 +127,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
 
       - name: Fmt
         uses: ./.github/actions/actions-rs/cargo
@@ -179,8 +175,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
 
       - name: Generate test result and coverage report
         run: |
@@ -236,8 +230,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain
@@ -298,11 +290,13 @@ jobs:
 
       - name: Cache Docker layers
         uses: actions/cache@v2
+        env:
+          CACHE_NAME: docker-cache-dependencies
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Dockerfile') }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
