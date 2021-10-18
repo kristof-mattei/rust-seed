@@ -125,7 +125,7 @@ jobs:
         uses: ./.github/actions/actions-rs/toolchain
         with:
           profile: minimal
-          toolchain: nightly # We use some nightly features
+          toolchain: stable # We use some nightly features
           override: true
 
       # - name: Cache dependencies
@@ -145,10 +145,6 @@ jobs:
 
       - name: Generate test result and coverage report
         run: |
-          cargo install cargo2junit grcov;
-          echo "CARGO_OPTIONS"
-          echo ${CARGO_OPTIONS}
-          echo "CARGO_OPTIONS"
           cargo install cargo2junit grcov;
           cargo test ${CARGO_OPTIONS} -- -Z unstable-options --format json | cargo2junit > results.xml;
           zip -0 ccov.zip `find . \( -name "${PROJECT_NAME_UNDERSCORE}*.gc*" \) -print`;
