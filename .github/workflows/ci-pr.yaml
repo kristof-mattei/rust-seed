@@ -30,7 +30,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          submodules: recursive
+          submodules: true
 
       - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
         id: filter
@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
@@ -88,7 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
@@ -118,6 +118,8 @@ jobs:
       (needs.changes.outputs.code == 'true')
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain
@@ -141,13 +143,13 @@ jobs:
       #     # figure out right cache-name here. Definitely shouldn't be a lowercase name
       #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
 
-      - name: Echo!
-        run: |
-          echo ${CARGO_OPTIONS}
-
       - name: Generate test result and coverage report
         run: |
           cargo install cargo2junit grcov rust-covfix;
+          echo "CARGO_OPTIONS"
+          echo ${CARGO_OPTIONS}
+          echo $CARGO_OPTIONS
+          echo "CARGO_OPTIONS"
           cargo test --features coverage ${CARGO_OPTIONS} -- -Z unstable-options --format json | cargo2junit > results.xml;
           zip -0 ccov.zip `find . \( -name "${PROJECT_NAME_UNDERSCORE}*.gc*" \) -print`;
           grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info;
@@ -180,7 +182,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain
