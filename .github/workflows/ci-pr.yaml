@@ -183,6 +183,7 @@ jobs:
           check_name: Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: results.xml
+          compare_to_earlier_commit: "false"
           log_level: DEBUG
 
       # - name: Upload to CodeCov
