@@ -4,9 +4,10 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches-ignore:
-      - main
+  # I need to find out a way to kill the push triggered event when there's a matching pull_request trigger
+  # push:
+  #   branches-ignore:
+  #     - main
 env:
   CARGO_TERM_COLOR: always
   # Use docker.io for Docker Hub if empty
@@ -15,237 +16,311 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 concurrency:
-  group: ${{ github.head_ref }}${{ github.ref }}
+  group: pr-${{ github.event.number }} # ${{ github.head_ref }}${{ github.ref }} <- when we expand to non-PRs
   cancel-in-progress: true
 
 jobs:
-  dump:
-    name: Dump
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
-    env:
-      GITHUB: ${{toJson(github)}}
+    outputs:
+      # code: ${{ steps.filter.outputs.code }}
+      code: "true"
     steps:
-      - name: Dump
-        shell: bash
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
+        id: filter
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            code:
+              - "src/*"
+              - "src/**/*"
+              - "TAG"
+              - "*.toml"
+              - Dockerfile
+              - "tests/*"
+              - "tests/**/*"
+
+  cargo-build:
+    name: Cargo build
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          CACHE_NAME: cargo-cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargobuild
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Build
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: build
+          args: --verbose
+
+  cargo-fmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          CACHE_NAME: cargo-cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargofmt
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Fmt
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: fmt
+          args: --all -- --check
+
+  cargo-test-and-report:
+    name: Cargo test and report
+    env:
+      PROJECT_NAME_UNDERSCORE: rust_integrity_playground
+      CARGO_INCREMENTAL: 0
+      RUSTFLAGS: -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests -Zprofile
+      RUSTDOCFLAGS: "-Cpanic=abort"
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          CACHE_NAME: cargo-cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargotest
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Generate test result and coverage report
         run: |
-          echo ${GITHUB}
+          cargo install cargo2junit grcov;
+          cargo test ${CARGO_OPTIONS} -- -Z unstable-options --format json | cargo2junit > results.xml;
+          zip -0 ccov.zip `find . \( -name "${PROJECT_NAME_UNDERSCORE}*.gc*" \) -print`;
+          grcov ccov.zip -s . -t lcov --llvm --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info;
 
-  # changes:
-  #   name: Detect changes
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     # code: ${{ steps.filter.outputs.code }}
-  #     code: "true"
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: ./.github/actions/EnricoMi/publish-unit-test-result-action/composite
+        with:
+          check_name: Test Results
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          files: results.xml
 
-  #     - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
-  #       id: filter
-  #       with:
-  #         token: ${{ secrets.GITHUB_TOKEN }}
-  #         filters: |
-  #           code:
-  #             - "src/*"
-  #             - "src/**/*"
-  #             - "TAG"
-  #             - "*.toml"
-  #             - Dockerfile
-  #             - "tests/*"
-  #             - "tests/**/*"
-
-  # cargo-build:
-  #   name: Cargo build
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   strategy:
-  #     matrix:
-  #       rust:
-  #         - stable
-  #         # - beta
-  #         # - nightly
-  #         # - 1.0.0
-
-  #       include:
-  #         - rust: stable
-  #           features: ""
-  #         # - rust: beta
-  #         #   features: ""
-  #         # - rust: nightly
-  #         #   features: ""
-  #         # - rust: 1.0.0
-  #         #   features: '--features "std"'
-
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
-
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-  #       with:
-  #         profile: minimal
-  #         toolchain: ${{ matrix.rust }}
-  #         override: true
-
-  #     - name: Test
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: test
-  #         args: --verbose ${{ matrix.features }}
-
-  # cargo-test:
-  #   name: Cargo test
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   strategy:
-  #     matrix:
-  #       rust:
-  #         - stable
-  #         # - beta
-  #         # - nightly
-  #         # - 1.0.0
-
-  #       include:
-  #         - rust: stable
-  #           features: ""
-  #         # - rust: beta
-  #         #   features: ""
-  #         # - rust: nightly
-  #         #   features: ""
-  #         # - rust: 1.0.0
-  #         #   features: '--features "std"'
-
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
-
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-  #       with:
-  #         profile: minimal
-  #         toolchain: ${{ matrix.rust }}
-  #         override: true
-
-  #     - name: Test
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: test
-  #         args: --verbose ${{ matrix.features }}
+      # - name: Upload to CodeCov
+      #   if: ${{ always() }}
+      #   uses: codecov/codecov-action@v1
+      #   with:
+          # required for private repositories:
+          # token: ${{ secrets.CODECOV_TOKEN }}
+          # files: ./lcov.info
+          # fail_ci_if_error: true
 
 
-  # cargo-fmt:
-  #   name: Check formatting
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+  cargo-clippy-and-report:
+    name: Run Clippy
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
 
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #         components: rustfmt
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          CACHE_NAME: cargo-cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargoclippy
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
 
-  #     - name: Fmt
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: fmt
-  #         args: --all -- --check
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
 
-  # cargo-clippy:
-  #   name: Run Clippy
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - changes
-  #   if: |
-  #     (needs.changes.outputs.code == 'true')
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         submodules: recursive
+      - name: Clippy
+        uses: ./.github/actions/actions-rs/cargo
+        with:
+          command: clippy
+          args: --all-targets --all-features -- -D warnings
 
-  #     - name: Set up toolchain
-  #       uses: ./.github/actions/actions-rs/toolchain
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #         components: clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-targets --all-features -- -D warnings
+          name: Clippy report
 
-  #     - name: Clippy
-  #       uses: ./.github/actions/actions-rs/cargo
-  #       with:
-  #         command: clippy
-  #         args: --all-targets --all-features -- -D warnings
+  publish:
+    name: Build docker container and publish
+    #needs:
+      # - cargo-build
+      # - cargo-fmt
+      # - cargo-test-and-report
+      # - cargo-clippy-and-report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
 
-  # # TODO code coverage here
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
 
-  # publish:
-  #   name: Build docker container and publish
-  #   needs:
-  #     - cargo-build
-  #     - cargo-test
-  #     - cargo-fmt
-  #     - cargo-clippy
-  #   if: |
-  #       (github.repository == 'Kristof-Mattei/rust-integrity-playground')
-  #       && (github.event_name == 'pull_request')
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #     - name: Log into registry ${{ env.REGISTRY }}
-  #       uses: docker/login-action@v1
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  #     # TODO validate no changes between github.pull_request.head.sha and the actual current sha (representing the hypothetical merge)
+      # TODO validate no changes between github.pull_request.head.sha and the actual current sha (representing the hypothetical merge)
 
-  #     # Extract metadata (tags, labels) for Docker
-  #     # https://github.com/docker/metadata-action
-  #     - name: Extract Docker metadata
-  #       id: meta
-  #       uses: docker/metadata-action@v3
-  #       with:
-  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-  #         # type=sha,prefix=sha-,format=long
-  #         # don't add type=sha, as that is the sha of the MERGE commit, which is a hypothetical one
-  #         # when the merge actually happens that sha will be different.
-  #         tags: |
-  #           type=edge
-  #           type=raw,prefix=sha-,value=${{ github.event.pull_request.head.sha }}
-  #           type=sha,prefix=SEARCH-FOR-ME-,format=long
-  #           type=ref,event=branch
-  #           type=ref,event=pr
-  #           type=semver,pattern={{version}}
-  #           type=semver,pattern={{major}}.{{minor}}
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=edge
+            type=ref,event=branch
+            type=ref,event=pr
 
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v2
-  #       with:
-  #         context: .
-  #         # push the created docker image when it's the tip of a PR
-  #         # this container is THE artifact, and we will re-tag it
-  #         # once the PR has been accepted
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: ${{ steps.meta.outputs.labels }}
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          # push the created docker image when it's the tip of a PR
+          # this container is THE artifact, and we will re-tag it
+          # once the PR has been accepted
+          push: ${{ (github.repository == 'Kristof-Mattei/rust-integrity-playground') && (github.event_name == 'pull_request')  }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+        # Temp fix
+        # https://github.com/docker/build-push-action/issues/252
+        # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

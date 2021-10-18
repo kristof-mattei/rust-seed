@@ -1,0 +1,84 @@
+name: Promote container
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow pushes to main, which by control in GitHub should only be PR merges
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+  # I don't think we need this
+  # workflow_dispatch:
+
+jobs:
+  add_latest_tag_to_incoming_commit:
+    name: "Add :latest tag to the Docker container built by the incoming PR."
+    if: ${{ github.event.pull_request.merged }} # TODO figure out how we can also trigger this on a tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          recurse: true
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=edge
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=long
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Add additional tags to image, since we accepted it as part of our main codebase
+        shell: bash
+        env:
+          TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
+          PR_RUN_NUMBER: ${{ github.event.number }}
+        run: |
+          # create new image <name>
+          # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
+          full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
+
+          $incoming_tag="pr-${PR_RUN_NUMBER}"
+
+          # we pull that image down
+          docker pull ${full_image_name}:$incoming_tag
+
+          # and the other tags
+          IFS=',' read -ra tags <<< "${TAGS}"
+
+          for tag in "${tags[@]}"
+          do
+              echo ${tag}
+              docker tag ${full_image_name}:$incoming_tag ${tag}
+          done
+
+          for tag in "${tags[@]}"
+          do
+              echo ${tag}
+              docker push ${tag}
+          done

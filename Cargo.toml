@@ -7,14 +7,14 @@ description = "Rust integrity playground"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dev-dependencies]
-clippy = { version = "0.0.302", optional = false }
-rustfmt = { version = "0.10.0", optional = false }
+[features]
+coverage = []
+
 
 [dev-dependencies.cargo-husky]
 version = "1.5.0"
 default-features = false # Disable features which are enabled by default
-features = ["precommit-hook", "run-for-all", "run-cargo-test", "run-cargo-check", "run-cargo-clippy", "run-cargo-fmt"]
+features = ["prepush-hook", "run-for-all", "run-cargo-test", "run-cargo-clippy", "run-cargo-fmt"]
 
 [dependencies]
 reqwest = { version = "0.11.5", features = ["json"] }
@@ -25,7 +25,7 @@ tokio = { version = "1.12.0", features = ["full"] }
 log = "0.4.14"
 env_logger = "0.9.0"
 serde_yaml = "0.8.21"
-structopt = "0.3.23"
+structopt = "0.3.25"
 
 # We compile the docker container with musl to get a static library. Smaller, faster.
 # BUT that means that we need to include openssl
