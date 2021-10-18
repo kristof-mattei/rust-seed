@@ -145,7 +145,7 @@ jobs:
 
       - name: Generate test result and coverage report
         run: |
-          cargo install cargo2junit grcov rust-covfix;
+          cargo install cargo2junit grcov;
           echo "CARGO_OPTIONS"
           echo ${CARGO_OPTIONS}
           echo "CARGO_OPTIONS"
