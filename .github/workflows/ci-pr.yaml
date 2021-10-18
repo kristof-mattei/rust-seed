@@ -166,11 +166,17 @@ jobs:
           # files: ./lcov.info
           # fail_ci_if_error: true
 
+  cargo-clippy-placeholder:
+    name: Clippy report
+    runs-on: ubuntu-latest
+
+
   cargo-clippy-and-report:
     name: Run Clippy
     runs-on: ubuntu-latest
     needs:
       - changes
+      - cargo-clippy-placeholder
     if: |
       (needs.changes.outputs.code == 'true')
     steps:
