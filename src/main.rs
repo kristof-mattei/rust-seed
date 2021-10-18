@@ -23,9 +23,22 @@ struct Opt {
     some_value: PathBuf,
 }
 
+
+fn foo() -> &'static str {
+    "Foo"
+}
+
+fn bar() -> &'static str {
+    "Baz"
+}
+
+
 async fn something_to_await(_: PathBuf) {
+    println!("{}", foo());
+    println!("{}", bar());
     todo!("TODO");
 }
+
 
 async fn run_app() {
     env_logger::Builder::from_env(Env::default().default_filter_or("INFO")).init();
@@ -52,4 +65,21 @@ async fn run_app() {
 #[tokio::main]
 async fn main() {
     run_app().await;
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::{bar, foo};
+
+    #[test]
+    fn assert_foo() {
+        assert_eq!(foo(), "Foo");
+    }
+
+    #[test]
+    fn assert_bar() {
+        assert_eq!(bar(), "Bar");
+    }
 }
