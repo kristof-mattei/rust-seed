@@ -104,6 +104,15 @@ jobs:
           command: fmt
           args: --all -- --check
 
+
+  cargo-test-placeholder:
+    name: Test Results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate test result and coverage report
+        run: |
+          echo "I'm a giraffe!"
+
   cargo-test-and-report:
     name: Cargo test and report
     env:
@@ -114,6 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - changes
+      - cargo-test-placeholder
     if: |
       (needs.changes.outputs.code == 'true')
     steps:
