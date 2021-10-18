@@ -311,7 +311,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
 
-      - name: Cache Docker layers
+        name: Cache Docker layers
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
@@ -329,8 +329,8 @@ jobs:
           push: ${{ (github.repository == 'Kristof-Mattei/rust-integrity-playground') && (github.event_name == 'pull_request')  }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
         # Temp fix
         # https://github.com/docker/build-push-action/issues/252
