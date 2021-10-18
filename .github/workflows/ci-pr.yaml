@@ -109,8 +109,12 @@ jobs:
     env:
       PROJECT_NAME_UNDERSCORE: rust_integrity_playground
       CARGO_INCREMENTAL: 0
-      RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
-      RUSTDOCFLAGS: -Cpanic=abort
+      # REMOVED:
+      # -Cpanic=abort -Zpanic_abort_tests -Zprofile
+      RUSTFLAGS: -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off
+      # REMOVED:
+      # -Cpanic=abort
+      RUSTDOCFLAGS: ""
     runs-on: ubuntu-latest
     needs:
       - changes
@@ -125,23 +129,22 @@ jobs:
         uses: ./.github/actions/actions-rs/toolchain
         with:
           profile: minimal
-          toolchain: stable # We use some nightly features
+          toolchain: stable
           override: true
 
-      # - name: Cache dependencies
-      #   uses: actions/cache@v2
-      #   env:
-      #     cache-name: cache-dependencies
-      #   with:
-      #     path: |
-      #       ~/.cargo/.crates.toml
-      #       ~/.cargo/.crates2.json
-      #       ~/.cargo/bin
-      #       ~/.cargo/registry/index
-      #       ~/.cargo/registry/cache
-      #       target
-      #     # figure out right cache-name here. Definitely shouldn't be a lowercase name
-      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          CACHE_NAME: cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            target
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Generate test result and coverage report
         run: |
