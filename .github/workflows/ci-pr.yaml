@@ -169,6 +169,10 @@ jobs:
   cargo-clippy-placeholder:
     name: Clippy report
     runs-on: ubuntu-latest
+    steps:
+      - name: Generate test result and coverage report
+        run: |
+          echo "I'm a giraffe!"
 
 
   cargo-clippy-and-report:
