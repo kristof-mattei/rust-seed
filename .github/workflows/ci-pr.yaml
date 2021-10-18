@@ -81,6 +81,7 @@ jobs:
             target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargobuild
           restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
@@ -126,6 +127,7 @@ jobs:
             target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargofmt
           restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
@@ -175,6 +177,7 @@ jobs:
             target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargotest
           restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
@@ -246,6 +249,7 @@ jobs:
             target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargoclippy
           restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
@@ -258,8 +262,6 @@ jobs:
           override: true
           components: clippy
 
-      # we may want to remove this if clippy-check also reports to the
-      # logs in GitHub actions
       - name: Clippy
         uses: ./.github/actions/actions-rs/cargo
         with:
@@ -311,8 +313,6 @@ jobs:
           # push the created docker image when it's the tip of a PR
           # this container is THE artifact, and we will re-tag it
           # once the PR has been accepted
-          push: |
-            (github.repository == 'Kristof-Mattei/rust-integrity-playground')
-            && (github.event_name == 'pull_request')
+          push: ${{ (github.repository == 'Kristof-Mattei/rust-integrity-playground') && (github.event_name == 'pull_request')  }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
