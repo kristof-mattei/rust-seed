@@ -276,7 +276,7 @@ jobs:
 
   publish:
     name: Build docker container and publish
-    needs:
+    #needs:
       # - cargo-build
       # - cargo-fmt
       # - cargo-test-and-report
