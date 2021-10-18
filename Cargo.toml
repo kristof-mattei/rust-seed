@@ -7,6 +7,9 @@ description = "Rust integrity playground"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+coverage = []
+
 [dev-dependencies]
 clippy = { version = "0.0.302", optional = false }
 rustfmt = { version = "0.10.0", optional = false }
