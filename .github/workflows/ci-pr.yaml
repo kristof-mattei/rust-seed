@@ -72,10 +72,10 @@ jobs:
       # our current directory + /target
       # to speed up compilation
 
-      - name: Test
+      - name: Build
         uses: ./.github/actions/actions-rs/cargo
         with:
-          command: test
+          command: build
           args: --verbose
 
   cargo-fmt:
@@ -112,16 +112,18 @@ jobs:
       RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
       RUSTDOCFLAGS: -Cpanic=abort
     runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: |
+      (needs.changes.outputs.code == 'true')
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Set up toolchain
         uses: ./.github/actions/actions-rs/toolchain
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly # We use some nightly features
           override: true
 
       # - name: Cache dependencies
@@ -139,11 +141,15 @@ jobs:
       #     # figure out right cache-name here. Definitely shouldn't be a lowercase name
       #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
 
+      - name: Echo!
+        run: |
+          echo ${CARGO_OPTIONS}
+
       - name: Generate test result and coverage report
         run: |
           cargo install cargo2junit grcov rust-covfix;
           cargo test --features coverage ${CARGO_OPTIONS} -- -Z unstable-options --format json | cargo2junit > results.xml;
-          zip -0 ccov.zip `find . \( -name "$PROJECT_NAME_UNDERSCORE*.gc*" \) -print`;
+          zip -0 ccov.zip `find . \( -name "${PROJECT_NAME_UNDERSCORE}*.gc*" \) -print`;
           grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info;
           rust-covfix -o lcov_correct.info lcov.info;
 
