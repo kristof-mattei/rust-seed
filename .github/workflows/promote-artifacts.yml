@@ -63,10 +63,10 @@ jobs:
           # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
           full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
 
-          $incoming_tag="pr-${PR_RUN_NUMBER}"
+          incoming_tag="pr-${PR_RUN_NUMBER}"
 
           # we pull that image down
-          docker pull ${full_image_name}:$incoming_tag
+          docker pull ${full_image_name}:${incoming_tag}
 
           # and the other tags
           IFS=',' read -ra tags <<< "${TAGS}"
@@ -74,7 +74,7 @@ jobs:
           for tag in "${tags[@]}"
           do
               echo ${tag}
-              docker tag ${full_image_name}:$incoming_tag ${tag}
+              docker tag ${full_image_name}:${incoming_tag} ${tag}
           done
 
           for tag in "${tags[@]}"
