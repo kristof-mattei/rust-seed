@@ -178,7 +178,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ always() }}
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: ./.github/actions/EnricoMi/publish-unit-test-result-action
         with:
           check_name: Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
