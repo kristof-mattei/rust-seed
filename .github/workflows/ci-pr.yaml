@@ -205,6 +205,14 @@ jobs:
         with:
           submodules: true
 
+      - name: Set up toolchain
+        uses: ./.github/actions/actions-rs/toolchain
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+
       - name: Cache dependencies
         uses: actions/cache@v2
         env:
@@ -222,14 +230,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
-
-      - name: Set up toolchain
-        uses: ./.github/actions/actions-rs/toolchain
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: clippy
 
       - name: Clippy
         uses: ./.github/actions/actions-rs/cargo
