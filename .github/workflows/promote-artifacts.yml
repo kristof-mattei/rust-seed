@@ -80,8 +80,5 @@ jobs:
               docker tag ${incoming_image_with_tag} ${tag}
           done
 
-          for tag in "${tags[@]}"
-          do
-              echo "Pushing ${tag}"
-              docker push ${tag}
-          done
+          echo "Pushing ${incoming_image_with_tag} back, which now has the additional tags"
+          docker push ${incoming_image_with_tag}
