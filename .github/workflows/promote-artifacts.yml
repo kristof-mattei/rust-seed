@@ -67,7 +67,7 @@ jobs:
           
           echo "Adding the following tags: ${TAGS}"
           
-          ls -l ${HOME}/.docker/config.json
+          chmod g+w ${HOME}/.docker/config.json
           
           for tag in "${tags[@]}"
           do
