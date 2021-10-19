@@ -57,23 +57,22 @@ jobs:
           # Parse the tags
           IFS=',' read -ra tags <<< "${TAGS}"
           
-          docker volume create crane
+          mkdir ${HOME}/crane
           
           # Log in
           docker run \
-            --mount "type=volume,src=crane,dst=/home/nonroot/" \
+            --mount "type=bind,src=${HOME}/crane,dst=/home/nonroot/" \
             gcr.io/go-containerregistry/crane \
             auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
           
           echo "Adding the following tags: ${TAGS}"
           
-          chmod g+w ${HOME}/.docker/config.json
-          
+         
           for tag in "${tags[@]}"
           do
               echo "Adding ${tag}"
               docker run \
-                --mount "type=volume,src=crane,dst=/home/nonroot/" \
+                --mount "type=bind,src=${HOME}/crane,dst=/home/nonroot/" \
                 gcr.io/go-containerregistry/crane \
                 cp ${incoming_image_with_tag} ${tag}
           done
