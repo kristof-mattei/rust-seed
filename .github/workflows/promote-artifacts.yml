@@ -21,20 +21,30 @@ on:
   # workflow_dispatch:
 
 jobs:
-  job1:
-    name: foo
+  collect-previous-tag:
+    name: Collect previous tag
     runs-on: ubuntu-latest
-    steps:
-     - name: I don't run
-       shell: bash
-       if: ${{ false }}
-       run: |
-         echo "I really shouldn't run"
+    # outputs:
+    #   previous-tag: |
+    #     ${{  }}
 
-     - name: But will I?
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v2
+       with:
+         submodules: true
+
+     - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
+       if: ${{ github.event_name == 'pull_request' }}
+       id: filter
+       with:
+         token: ${{ secrets.GITHUB_TOKEN }}
+         filters: .github/file-filters.yml
+
+     - name: Eh?
        shell: bash
        run: |
-         echo "Will I run?"
+         echo "${{ toJson(steps.filter) }}"
 
   # tag_added:
   #   name: Add tag to Docker container
