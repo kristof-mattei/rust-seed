@@ -68,7 +68,7 @@ jobs:
           for tag in "${tags[@]}"
           do
               echo "Adding ${tag}"
-              docker run --mount "type=bind,src=~/.docker/config.json,dst=/root.docker/config.json" gcr.io/go-containerregistry/crane:v0.6.0 cp ${incoming_image_with_tag} ${tag}
+              docker run --mount "type=bind,src=${HOME}/.docker/config.json,dst=/root.docker/config.json" gcr.io/go-containerregistry/crane:v0.6.0 cp ${incoming_image_with_tag} ${tag}
           done
 
           echo "Pushing ${full_image_name} back (no tags!), which should push all tags"
