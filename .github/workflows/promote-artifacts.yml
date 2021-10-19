@@ -81,8 +81,6 @@ jobs:
               echo "Adding ${tag}"
               docker tag ${incoming_image_with_tag} ${tag}
           done
-          
+
           echo "Pushing ${full_image_name} back (no tags!), which should push all tags"
           docker push ${full_image_name}
-
-
