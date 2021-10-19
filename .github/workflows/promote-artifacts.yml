@@ -28,8 +28,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-        with:
-          recurse: true
 
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v1
@@ -65,20 +63,25 @@ jobs:
 
           incoming_tag="pr-${PR_RUN_NUMBER}"
 
+          incoming_image_with_tag="${full_image_name}:${incoming_tag}"
+
           # we pull that image down
-          docker pull ${full_image_name}:${incoming_tag}
+          echo "Pulling ${incoming_image_with_tag}"
+          docker pull ${incoming_image_with_tag}
 
           # and the other tags
           IFS=',' read -ra tags <<< "${TAGS}"
 
+          echo "Adding the following tags: ${tags}"
+
           for tag in "${tags[@]}"
           do
-              echo ${tag}
-              docker tag ${full_image_name}:${incoming_tag} ${tag}
+              echo "Adding ${tag}"
+              docker tag ${incoming_image_with_tag} ${tag}
           done
 
           for tag in "${tags[@]}"
           do
-              echo ${tag}
+              echo "Pushing ${tag}"
               docker push ${tag}
           done
