@@ -30,32 +30,6 @@ jobs:
     # env:
     #   {}
     steps:
-
-      - name: Step 1
-        shell: bash
-        run: |
-
-          echo "WINE=Sovingnon" >> $GITHUB_ENV
-          echo "LIQUOR=Amaretto" >> $GITHUB_ENV
-
-      - name: Step 2
-        shell: bash
-        env:
-          BEER: "Jupiler"
-          WINE: "Cabernet"
-        run: |
-
-          echo "BEER"
-          echo "${BEER}"
-          echo "${{ env.BEER }}"
-          echo "WINE"
-          echo "${WINE}"
-          echo "${{ env.WINE }}"
-          echo "LIQUOR"
-          echo "${LIQUOR}"
-          echo "${{ env.LIQUOR }}"
-
-
       # - name: Define potential tags, in order
       #   if: ${{ github.event_name == 'pull_request' }}
       #   shell: bash
@@ -68,17 +42,30 @@ jobs:
       #   run: |
       #     echo bar
 
-      # - name: Set up Crane env variables
-      #   shell: bash
-      #   run: |
+      - name: Set up Crane volume and define env variables
+        shell: bash
+        run: |
 
-      #     CRANE_DOCKER_CONFIG_VOLUME="crane_docker_config"
-      #     # for security purposes let's create a volume for .docker in crane
-      #     CRANE_DOCKER_CONFIG_LOCATION="/${CRANE_DOCKER_CONFIG_VOLUME}"
-      #     docker volume create ${CRANE_DOCKER_CONFIG_VOLUME};
+          CRANE_DOCKER_CONFIG_VOLUME="crane_docker_config"
+          docker volume create ${CRANE_DOCKER_CONFIG_VOLUME};
 
-      #     # generalize the mount config
-      #     CRANE_DOCKER_CONFIG_VOLUME_MOUNT="type=volume,src=${CRANE_DOCKER_CONFIG_VOLUME},dst=${CRANE_DOCKER_CONFIG_LOCATION}"
+          # for security purposes let's create a volume for .docker in crane
+          CRANE_DOCKER_CONFIG_LOCATION="/${CRANE_DOCKER_CONFIG_VOLUME}"
+
+          # generalize the mount config
+          CRANE_DOCKER_CONFIG_VOLUME_MOUNT="type=volume,src=${CRANE_DOCKER_CONFIG_VOLUME},dst=${CRANE_DOCKER_CONFIG_LOCATION}"
+
+          echo "CRANE_DOCKER_CONFIG_VOLUME=${CRANE_DOCKER_CONFIG_VOLUME}" >> ${GITHUB_ENV}
+          echo "CRANE_DOCKER_CONFIG_LOCATION=${CRANE_DOCKER_CONFIG_LOCATION}" >> ${GITHUB_ENV}
+          echo "CRANE_DOCKER_CONFIG_VOLUME_MOUNT=${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" >> ${GITHUB_ENV}
+
+      - name: DUMP
+        shell: bash
+        run: |
+
+          echo "${CRANE_DOCKER_CONFIG_VOLUME}"
+          echo "${CRANE_DOCKER_CONFIG_LOCATION}"
+          echo "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}"
 
       # - name: Crane setup volume
       #   shell: bash
