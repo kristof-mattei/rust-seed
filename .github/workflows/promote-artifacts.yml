@@ -73,12 +73,14 @@ jobs:
           # so it just gets an actual string
           docker run \
             --mount "${crane_docker_config_volume_mount}" \
+            --rm \
             alpine:latest \
             sh -c "chmod 700 ${crane_docker_config_location} && chown 65532:65532 ${crane_docker_config_location}"
 
           docker run \
             --env DOCKER_CONFIG=${crane_docker_config_location} \
             --mount "${crane_docker_config_volume_mount}" \
+            --rm \
             gcr.io/go-containerregistry/crane:latest \
             auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
@@ -92,6 +94,7 @@ jobs:
               docker run \
                 --env DOCKER_CONFIG=${crane_docker_config_location} \
                 --mount "${crane_docker_config_volume_mount}" \
+                --rm \
                 gcr.io/go-containerregistry/crane:latest \
                 cp ${incoming_image_with_tag} ${tag}
           done
