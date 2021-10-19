@@ -42,7 +42,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ""
           tags: |
             type=edge
             type=raw,value=latest
@@ -55,7 +56,7 @@ jobs:
         shell: bash
         env:
           TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
-          PR_RUN_NUMBER: ${{ github.event.number }}
+          PR_RUN_NUMBER: "12" #${{ github.event.number }}
         run: |
           # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
           incoming_tag="pr-${PR_RUN_NUMBER}"
