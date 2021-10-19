@@ -29,12 +29,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Log into registry ${{ env.REGISTRY }}
+#         uses: docker/login-action@v1
+#         with:
+#           registry: ${{ env.REGISTRY }}
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
@@ -57,28 +57,30 @@ jobs:
           TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
           PR_RUN_NUMBER: ${{ github.event.number }}
         run: |
-          # create new image <name>
           # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
-          full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
-
           incoming_tag="pr-${PR_RUN_NUMBER}"
 
-          incoming_image_with_tag="${full_image_name}:${incoming_tag}"
+          base_url="https://${REGISTRY}/v2/${IMAGE_NAME,,}/manifests"
 
-          # we pull that image down
-          echo "Pulling ${incoming_image_with_tag}"
-          docker pull ${incoming_image_with_tag}
+          accept_content_type="application/vnd.docker.distribution.manifest.v2+json"
 
-          # and the other tags
+          curl "${base_url}/${incoming_tag}" \
+            -H "Accept: ${accept_content_type}" \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            > manifest.json
+  
+          # Parse the other tags
           IFS=',' read -ra tags <<< "${TAGS}"
 
           echo "Adding the following tags: ${TAGS}"
 
           for tag in "${tags[@]}"
           do
-              echo "Adding ${tag}"
-              docker tag ${incoming_image_with_tag} ${tag}
+              curl -X PUT "${base_url}/${tag}" \
+                -H "Content-Type: ${accept_content_type}" \
+                -H "Authorization: token ${GITHUB_TOKEN}" \
+                -d "@manifest.json"
           done
 
-          echo "Pushing ${incoming_image_with_tag} back, which now has the additional tags"
-          docker push ${incoming_image_with_tag}
+  
+
