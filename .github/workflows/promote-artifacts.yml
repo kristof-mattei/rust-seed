@@ -72,7 +72,7 @@ jobs:
           # and the other tags
           IFS=',' read -ra tags <<< "${TAGS}"
 
-          echo "Adding the following tags: ${tags}"
+          echo "Adding the following tags: ${TAGS}"
 
           for tag in "${tags[@]}"
           do
