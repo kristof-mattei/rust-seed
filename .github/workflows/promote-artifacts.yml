@@ -19,13 +19,17 @@ on:
 jobs:
   add_latest_tag_to_incoming_commit:
     name: "Add :latest tag to the Docker container built by the incoming PR."
-    if: ${{ github.event.pull_request.merged }} # TODO figure out how we can also trigger this on a tag
+    # TODO figure out how we can also trigger this on a tag
+    if: ${{ github.event.pull_request.merged }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
-    steps:          
+    env:
+      CRANE_DOCKER_CONFIG_VOLUME: "crane_docker_config"
+
+    steps:
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v3
@@ -42,38 +46,50 @@ jobs:
       - name: Add additional tags to image, since we accepted it as part of our main codebase
         shell: bash
         env:
-#           TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
-          TAGS: "foo, bar"
-          PR_RUN_NUMBER: "12" #${{ github.event.number }}
+          TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
+          PR_RUN_NUMBER: ${{ github.event.number }}
         run: |
           # create new image <name>
           # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
           full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
-          
+
           incoming_tag="pr-${PR_RUN_NUMBER}"
-          
+
           incoming_image_with_tag="${full_image_name}:${incoming_tag}"
-          
+
           # Parse the tags
           IFS=',' read -ra tags <<< "${TAGS}"
-          
-          mkdir ${HOME}/crane
-          
-          # Log in
+
+          # for security purposes I'm creating a volume for .docker in crane
+          # but I need to make sure that volume has the right permissions
+          # so we do a fixup with alpine
+          crane_docker_config_location="/${{ env.CRANE_DOCKER_CONFIG_VOLUME }}"
+
+          docker volume create ${{ env.CRANE_DOCKER_CONFIG_VOLUME }};
+
+          crane_docker_config_volume_mount="type=volume,src=${{ env.CRANE_DOCKER_CONFIG_VOLUME }},dst=${crane_docker_config_location}"
+
+          # note that the ${} passed in via sh are rendered before we run the container
+          # so it just gets an actual string
           docker run \
-            --mount "type=bind,src=${HOME}/crane,dst=/home/nonroot/" \
-            gcr.io/go-containerregistry/crane \
+            --mount "${crane_docker_config_volume_mount}" \
+            alpine:latest \
+            sh -c "chmod 700 ${crane_docker_config_location} && chown 65532:65532 ${crane_docker_config_location}"
+
+          docker run \
+            --env DOCKER_CONFIG=${crane_docker_config_location} \
+            --mount "${crane_docker_config_volume_mount}" \
+            gcr.io/go-containerregistry/crane:latest \
             auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-          
+
           echo "Adding the following tags: ${TAGS}"
-          
-         
-          for tag in "${tags[@]}"
+
+          for tag in "${TAGS[@]}"
           do
-              echo "Adding ${tag}"
               docker run \
-                --mount "type=bind,src=${HOME}/crane,dst=/home/nonroot/" \
-                gcr.io/go-containerregistry/crane \
+                --env DOCKER_CONFIG=${crane_docker_config_location} \
+                --mount "${crane_docker_config_volume_mount}" \
+                gcr.io/go-containerregistry/crane:latest \
                 cp ${incoming_image_with_tag} ${tag}
           done
 
@@ -81,4 +97,4 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          docker volume rm crane
+          docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
