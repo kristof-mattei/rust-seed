@@ -59,36 +59,30 @@ jobs:
           TAGS: "foo, bar"
           PR_RUN_NUMBER: "12" #${{ github.event.number }}
         run: |
+          # create new image <name>
           # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
+          full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
+          
           incoming_tag="pr-${PR_RUN_NUMBER}"
-
-          base_url="https://${REGISTRY}/v2/${IMAGE_NAME,,}/manifests"
-
-          accept_content_type="application/vnd.docker.distribution.manifest.v2+json"
-
-          authorization_header="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
-
-          curl \
-            --request GET \
-            --url "${base_url}/${incoming_tag}" \
-            --header "Accept: ${accept_content_type}" \
-            --header "${authorization_header}" \
-            > manifest.json
-  
-          # Parse the other tags
+          
+          incoming_image_with_tag="${full_image_name}:${incoming_tag}"
+          
+          # we pull that image down
+          echo "Pulling ${incoming_image_with_tag}"
+          docker pull ${incoming_image_with_tag}
+          
+          # and the other tags
           IFS=',' read -ra tags <<< "${TAGS}"
-
+          
           echo "Adding the following tags: ${TAGS}"
-
+          
           for tag in "${tags[@]}"
           do
-              curl \
-                --request PUT \
-                --url "${base_url}/${tag}" \
-                --header "Content-Type: ${accept_content_type}" \
-                --header "${authorization_header}" \
-                -d "@manifest.json"
+              echo "Adding ${tag}"
+              docker tag ${incoming_image_with_tag} ${tag}
           done
+          
+          echo "Pushing ${full_image_name} back (no tags!), which should push all tags"
+          docker push ${full_image_name}
 
-  
 
