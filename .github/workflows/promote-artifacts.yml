@@ -39,7 +39,6 @@ jobs:
           echo "LIQUOR=Amaretto" >> $GITHUB_ENV
 
       - name: Step 2
-        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         shell: bash
         env:
           BEER: "Jupiler"
