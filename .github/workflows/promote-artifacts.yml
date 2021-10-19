@@ -25,16 +25,25 @@ jobs:
       contents: read
       packages: write
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    container: 
+      image: gcr.io/go-containerregistry/crane
 
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Login
+        run: |
+          crane auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Move tags
+        run: |
+          crane tag "${REGISTRY,,}/${IMAGE_NAME,,}:${pr-12} latest
+
+
+#       - name: Log into registry ${{ env.REGISTRY }}
+#         uses: docker/login-action@v1
+#         with:
+#           registry: ${{ env.REGISTRY }}
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
@@ -52,35 +61,37 @@ jobs:
 #             type=semver,pattern={{version}}
 #             type=semver,pattern={{major}}.{{minor}}
 
-      - name: Add additional tags to image, since we accepted it as part of our main codebase
-        shell: bash
-        env:
-#           TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
-          TAGS: "foo, bar"
-          PR_RUN_NUMBER: "12" #${{ github.event.number }}
-        run: |
-          # create new image <name>
-          # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
-          full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
+#       - name: Add additional tags to image, since we accepted it as part of our main codebase
+#         uses: docker://gcr.io/go-containerregistry/crane
+#         env:
+# #           TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
+#           TAGS: "foo, bar"
+#           PR_RUN_NUMBER: "12" #${{ github.event.number }}
+#         with:
+#           args: auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+# #         run: |
+# #           # create new image <name>
+# #           # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
+# #           full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
           
-          incoming_tag="pr-${PR_RUN_NUMBER}"
+# #           incoming_tag="pr-${PR_RUN_NUMBER}"
           
-          incoming_image_with_tag="${full_image_name}:${incoming_tag}"
+# #           incoming_image_with_tag="${full_image_name}:${incoming_tag}"
           
-          # we pull that image down
-          echo "Pulling ${incoming_image_with_tag}"
-          docker pull ${incoming_image_with_tag}
+# #           # we pull that image down
+# #           echo "Pulling ${incoming_image_with_tag}"
+# #           docker pull ${incoming_image_with_tag}
           
-          # and the other tags
-          IFS=',' read -ra tags <<< "${TAGS}"
+# #           # and the other tags
+# #           IFS=',' read -ra tags <<< "${TAGS}"
           
-          echo "Adding the following tags: ${TAGS}"
+# #           echo "Adding the following tags: ${TAGS}"
           
-          for tag in "${tags[@]}"
-          do
-              echo "Adding ${tag}"
-              docker tag ${incoming_image_with_tag} ${tag}
-          done
+# #           for tag in "${tags[@]}"
+# #           do
+# #               echo "Adding ${tag}"
+# #               docker tag ${incoming_image_with_tag} ${tag}
+# #           done
 
-          echo "Pushing ${full_image_name} back (no tags!), which should push all tags"
-          docker push ${full_image_name}
+# #           echo "Pushing ${full_image_name} back (no tags!), which should push all tags"
+# #           docker push ${full_image_name}
