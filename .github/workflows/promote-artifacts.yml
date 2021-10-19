@@ -13,130 +13,149 @@ on:
     branches: [ main ]
     types: [ closed ]
   push:
+    branches: [ main ] # debug
     tags:
-      - "v*"
+      - "v**"
 
   # I don't think we need this
   # workflow_dispatch:
 
 jobs:
-  changes:
-    name: Detect changes
+  job1:
+    name: foo
     runs-on: ubuntu-latest
-    outputs:
-      # code: ${{ steps.filter.outputs.code }}
-      code: "true"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
+     - name: I don't run
+       shell: bash
+       if: ${{ false }}
+       run: |
+         echo "I really shouldn't run"
 
-      - name: Dump
-        env:
-          GITHUB: ${{toJson(github)}}
-        shell: bash
-        run: |
-          echo ${GITHUB}
+     - name: But will I?
+       shell: bash
+       run: |
+         echo "Will I run?"
 
-      - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
-        id: filter
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          filters: |
-            code:
-              - "src/*"
-              - "src/**/*"
-              - "TAG"
-              - "*.toml"
-              - Dockerfile
-              - "tests/*"
-              - "tests/**/*"
+  # tag_added:
+  #   name: Add tag to Docker container
+  #   if: ${{ github.ref == 'tag' }}
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     packages: write
 
-  add_latest_tag_to_incoming_commit:
-    name: "Add :latest tag to the Docker container built by the incoming PR."
-    # TODO figure out how we can also trigger this on a tag
-    if: ${{ github.event.pull_request.merged }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+  #   steps:
+  #     - name: Extract Docker metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v3
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         tags: |
+  #           type=edge
+  #           type=sha,prefix=sha-,format=long
+  #           type=ref,event=branch
+  #           type=semver,pattern={{version}}
+  #           type=semver,pattern={{major}}.{{minor}}
 
-    env:
-      CRANE_DOCKER_CONFIG_VOLUME: "crane_docker_config"
 
-    steps:
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v3
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=edge
-            type=raw,value=latest
-            type=sha,prefix=sha-,format=long
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+  # tag-incoming-pr-or-tag:
+  #   name: "Add or retag the Docker container."
+  #   # TODO figure out how we can also trigger this on a tag
+  #   # if: ${{ github.event.pull_request.merged }}
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     packages: write
 
-      - name: Add additional tags to image, since we accepted it as part of our main codebase
-        shell: bash
-        env:
-          TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
-          PR_RUN_NUMBER: ${{ github.event.number }}
-        run: |
-          # create new image <name>
-          # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
-          full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
+  #   env:
+  #     CRANE_DOCKER_CONFIG_VOLUME: "crane_docker_config"
 
-          incoming_tag="pr-${PR_RUN_NUMBER}"
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #       with:
+  #         submodules: true
 
-          incoming_image_with_tag="${full_image_name}:${incoming_tag}"
+  #     - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
+  #       if: ${{ github.event_name == 'pull_request' }}
+  #       id: filter
+  #       with:
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         filters: .github/file-filters.yml
 
-          # Parse the tags
-          IFS=',' read -ra tags <<< "${TAGS}"
 
-          # for security purposes I'm creating a volume for .docker in crane
-          # but I need to make sure that volume has the right permissions
-          # so we do a fixup with alpine
-          crane_docker_config_location="/${{ env.CRANE_DOCKER_CONFIG_VOLUME }}"
 
-          docker volume create ${{ env.CRANE_DOCKER_CONFIG_VOLUME }};
+  #     - name: Extract Docker metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v3
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         tags: |
+  #           type=edge
+  #           type=raw,value=latest
+  #           type=sha,prefix=sha-,format=long
+  #           type=ref,event=branch
+  #           type=semver,pattern={{version}}
+  #           type=semver,pattern={{major}}.{{minor}}
 
-          crane_docker_config_volume_mount="type=volume,src=${{ env.CRANE_DOCKER_CONFIG_VOLUME }},dst=${crane_docker_config_location}"
+  #     - name: Add additional tags to image, since we accepted it as part of our main codebase
+  #       shell: bash
+  #       env:
+  #         TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags, ',') }}
+  #         PR_RUN_NUMBER: ${{ github.event.number }}
+  #       run: |
+  #         # create new image <name>
+  #         # the ,, means tolowercase. See https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameter-Expansion
+  #         full_image_name="${REGISTRY,,}/${IMAGE_NAME,,}"
 
-          # note that the ${} passed in via sh are rendered before we run the container
-          # so it just gets an actual string
-          docker run \
-            --mount "${crane_docker_config_volume_mount}" \
-            --rm \
-            alpine:latest \
-            sh -c "chmod 700 ${crane_docker_config_location} && chown 65532:65532 ${crane_docker_config_location}"
+  #         incoming_tag="pr-${PR_RUN_NUMBER}"
 
-          docker run \
-            --env DOCKER_CONFIG=${crane_docker_config_location} \
-            --mount "${crane_docker_config_volume_mount}" \
-            --rm \
-            gcr.io/go-containerregistry/crane:latest \
-            auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+  #         incoming_image_with_tag="${full_image_name}:${incoming_tag}"
 
-          echo "Adding the following tags: ${TAGS}"
+  #         # Parse the tags
+  #         IFS=',' read -ra tags <<< "${TAGS}"
 
-          # Parse the tags
-          IFS=',' read -ra tags <<< "${TAGS}"
+  #         # for security purposes I'm creating a volume for .docker in crane
+  #         # but I need to make sure that volume has the right permissions
+  #         # so we do a fixup with alpine
+  #         crane_docker_config_location="/${{ env.CRANE_DOCKER_CONFIG_VOLUME }}"
 
-          for tag in "${tags[@]}"
-          do
-              docker run \
-                --env DOCKER_CONFIG=${crane_docker_config_location} \
-                --mount "${crane_docker_config_volume_mount}" \
-                --rm \
-                gcr.io/go-containerregistry/crane:latest \
-                cp ${incoming_image_with_tag} ${tag}
-          done
+  #         docker volume create ${{ env.CRANE_DOCKER_CONFIG_VOLUME }};
 
-      - name: Cleanup!
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
+  #         crane_docker_config_volume_mount="type=volume,src=${{ env.CRANE_DOCKER_CONFIG_VOLUME }},dst=${crane_docker_config_location}"
+
+  #         # note that the ${} passed in via sh are rendered before we run the container
+  #         # so it just gets an actual string
+  #         docker run \
+  #           --mount "${crane_docker_config_volume_mount}" \
+  #           --rm \
+  #           alpine:latest \
+  #           sh -c "chmod 700 ${crane_docker_config_location} && chown 65532:65532 ${crane_docker_config_location}"
+
+  #         docker run \
+  #           --env DOCKER_CONFIG=${crane_docker_config_location} \
+  #           --mount "${crane_docker_config_volume_mount}" \
+  #           --rm \
+  #           gcr.io/go-containerregistry/crane:latest \
+  #           auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+  #         echo "Adding the following tags: ${TAGS}"
+
+  #         # Parse the tags
+  #         IFS=',' read -ra tags <<< "${TAGS}"
+
+  #         for tag in "${tags[@]}"
+  #         do
+  #             docker run \
+  #               --env DOCKER_CONFIG=${crane_docker_config_location} \
+  #               --mount "${crane_docker_config_volume_mount}" \
+  #               --rm \
+  #               gcr.io/go-containerregistry/crane:latest \
+  #               cp ${incoming_image_with_tag} ${tag}
+  #         done
+
+  #     - name: Cleanup!
+  #       if: ${{ always() }}
+  #       shell: bash
+  #       run: |
+  #         docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
