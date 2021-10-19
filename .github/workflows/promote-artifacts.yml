@@ -64,9 +64,13 @@ jobs:
 
           accept_content_type="application/vnd.docker.distribution.manifest.v2+json"
 
-          curl "${base_url}/${incoming_tag}" \
-            -H "Accept: ${accept_content_type}" \
-            -H "Authorization: token ${GITHUB_TOKEN}" \
+          authorization_header="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+
+          curl \
+            --request GET \
+            --url "${base_url}/${incoming_tag}" \
+            --header "Accept: ${accept_content_type}" \
+            --header "${authorization_header}" \
             > manifest.json
   
           # Parse the other tags
@@ -76,9 +80,11 @@ jobs:
 
           for tag in "${tags[@]}"
           do
-              curl -X PUT "${base_url}/${tag}" \
-                -H "Content-Type: ${accept_content_type}" \
-                -H "Authorization: token ${GITHUB_TOKEN}" \
+              curl \
+                --request PUT \
+                --url "${base_url}/${tag}" \
+                --header "Content-Type: ${accept_content_type}" \
+                --header "${authorization_header}" \
                 -d "@manifest.json"
           done
 
