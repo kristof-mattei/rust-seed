@@ -57,12 +57,12 @@ jobs:
           # Parse the tags
           IFS=',' read -ra tags <<< "${TAGS}"
           
-          mkdir /tmp/crane
+          mkdir ~/crane
           
           # Log in
           docker run \
             --env DOCKER_CONFIG=/tmp/crane \
-            --mount "type=bind,src=/tmp/crane,dst=/tmp/crane" \
+            --mount "type=bind,src=${HOME}/crane,dst=/tmp/crane" \
             gcr.io/go-containerregistry/crane \
             auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
           
@@ -75,7 +75,7 @@ jobs:
               echo "Adding ${tag}"
               docker run \
                 --env DOCKER_CONFIG=/tmp/crane \
-                --mount "type=bind,src=/tmp/crane,dst=/tmp/crane" \
+                --mount "type=bind,src=${HOME}/crane,dst=/tmp/crane" \
                 gcr.io/go-containerregistry/crane \
                 cp ${incoming_image_with_tag} ${tag}
           done
@@ -84,4 +84,4 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          rm -rf /tmp/crane
+          rm -rf ${HOME}/crane
