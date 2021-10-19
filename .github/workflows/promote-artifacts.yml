@@ -78,7 +78,7 @@ jobs:
                 cp ${incoming_image_with_tag} ${tag}
           done
 
-      - name: Cleanup
+      - name: Cleanup!
         if: ${{ always() }}
         shell: bash
         run: |
