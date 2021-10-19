@@ -253,11 +253,11 @@ jobs:
 
   publish:
     name: Build docker container and publish
-    #needs:
-      # - cargo-build
-      # - cargo-fmt
-      # - cargo-test-and-report
-      # - cargo-clippy-and-report
+    needs:
+      - cargo-build
+      - cargo-fmt
+      - cargo-test-and-report
+      - cargo-clippy-and-report
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
