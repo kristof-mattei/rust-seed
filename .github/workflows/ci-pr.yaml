@@ -36,15 +36,7 @@ jobs:
         id: filter
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          filters: |
-            code:
-              - "src/*"
-              - "src/**/*"
-              - "TAG"
-              - "*.toml"
-              - Dockerfile
-              - "tests/*"
-              - "tests/**/*"
+          filters: .github/file-filters.yml
 
   cargo-build:
     name: Cargo build
