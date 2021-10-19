@@ -61,7 +61,7 @@ jobs:
           
           # Log in
           docker run \
-            --env DOCKER_CONFIG=/tmp/crane \
+            --env DOCKER_CONFIG=/tmp/crane/docker \
             --mount "type=bind,src=${HOME}/crane,dst=/tmp/crane" \
             gcr.io/go-containerregistry/crane \
             auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
@@ -74,7 +74,7 @@ jobs:
           do
               echo "Adding ${tag}"
               docker run \
-                --env DOCKER_CONFIG=/tmp/crane \
+                --env DOCKER_CONFIG=/tmp/crane/docker \
                 --mount "type=bind,src=${HOME}/crane,dst=/tmp/crane" \
                 gcr.io/go-containerregistry/crane \
                 cp ${incoming_image_with_tag} ${tag}
