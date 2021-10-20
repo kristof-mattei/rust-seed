@@ -92,7 +92,9 @@ jobs:
 
           # search for the tag, and get the cargo2
           # it can only happen once
-          pr_tag_found=$(cat existing_tags | grep -c "^${PR_TAG}\$")
+          # we need the || true because
+          # otherwise grep returns exit code 1 and github actions then dies
+          pr_tag_found=$(cat existing_tags | grep -c "^${PR_TAG}\$") || true
 
           if [ $pr_tag_found -eq 1 ]
           then
