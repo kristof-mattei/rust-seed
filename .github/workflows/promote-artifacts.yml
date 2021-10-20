@@ -112,30 +112,30 @@ jobs:
 
           echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
+      - name: Actually re-tag the container
+        env:
+          NEW_TAG: ${{ github.event_name == 'pull_request' && 'pr-${{ github.event.number }}' || github.sha }}
+        shell: bash
+        run: |
+
+          docker run \
+            --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
+            --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
+            --rm \
+            gcr.io/go-containerregistry/crane:latest \
+            tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${NEW_TAG}
+
+      - name: Cleanup!
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
+
+
       - name: Dump
         shell: bash
         run: |
           echo ${{ github }}
-
-      # - name: Actually re-tag the container
-      #   env:
-      #     NEW_TAG: ${{ github.event_name == 'pull_request' && 'pr-${{ github.event.number }}' || github.sha }}
-      #   shell: bash
-      #   run: |
-
-      #     docker run \
-      #       --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
-      #       --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
-      #       --rm \
-      #       gcr.io/go-containerregistry/crane:latest \
-      #       tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${NEW_TAG}
-
-      # - name: Cleanup!
-      #   if: ${{ always() }}
-      #   shell: bash
-      #   run: |
-      #     docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
-
 
       # - name: Define potential tags, in order
       #   if: ${{ github.event_name == 'pull_request' }}
