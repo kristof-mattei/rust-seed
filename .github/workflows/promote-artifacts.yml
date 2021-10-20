@@ -113,7 +113,7 @@ jobs:
 
       - name: Actually re-tag the container
         env:
-          NEW_TAG: ${{ github.event_name == 'pull_request' && 'pr-${{ github.event.number }}' || github.sha }}
+          NEW_TAG: ${{ github.event_name == 'pull_request' && github.sha || github.sha }} # when this a tag we actually have to have the tag
         shell: bash
         run: |
 
