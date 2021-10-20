@@ -84,39 +84,47 @@ jobs:
 
           echo "::set-output name=existing-tags::${existing_tags}"
 
-      # - name: Find out if the incoming PR has a docker image in the form of :pr-<number>
-      #   if: ${{ github.event_name == 'pull_request' }}
-      #   env:
-      #     PR_TAG: "pr-${{ github.event.number }}"
-      #   shell: bash
-      #   run: |
 
-      #     # search for the tag
-      #     echo ${EXISTING_TAGS} | grep ${PR_TAG}
+      - name: Debug
+        shell: bash
+        run: |
 
-      #     if [ $? -eq 0 ]
-      #     then
-      #       echo "Incoming PR produced a Docker image"
-      #       echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
-      #     fi
+          echo "${{ steps.tags.output.existing-tags }}"
 
-      # - name: Find SHA suffix for retagging
-      #   if: ${{ env.OLD_TAG == '' }}
-      #   env:
-      #     SHA: ${{ github.event_name == 'pull_request' && github.pull_request.base.sha || github.sha }}
-      #   shell: bash
-      #   run: |
 
-      #     tag_prefix="sha-${SHA}-"
+      - name: Find out if the incoming PR has a docker image in the form of :pr-<number>
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PR_TAG: "pr-${{ github.event.number }}"
+        shell: bash
+        run: |
 
-      #     old_tag=$(echo ${EXISTING_TAGS} | grep --only-matching ${tag_prefix}-.*)
+          # search for the tag
+          echo "${{ steps.tags.output.existing-tags }}" | grep ${PR_TAG}
 
-      #     echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
+          if [ $? -eq 0 ]
+          then
+            echo "Incoming PR produced a Docker image"
+            echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
+          fi
 
-      # - name: Dump
-      #   shell: bash
-      #   run: |
-      #     echo ${{ github }}
+      - name: Find SHA suffix for retagging
+        if: ${{ env.OLD_TAG == '' }}
+        env:
+          SHA: ${{ github.event_name == 'pull_request' && github.pull_request.base.sha || github.sha }}
+        shell: bash
+        run: |
+
+          tag_prefix="sha-${SHA}-"
+
+          old_tag=$(echo "${{ steps.tags.output.existing-tags }}" | grep --only-matching ${tag_prefix}-.*)
+
+          echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
+
+      - name: Dump
+        shell: bash
+        run: |
+          echo ${{ github }}
 
       # - name: Actually re-tag the container
       #   env:
