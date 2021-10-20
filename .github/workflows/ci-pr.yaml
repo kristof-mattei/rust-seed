@@ -291,6 +291,8 @@ jobs:
             type=ref,event=pr,suffix=-latest
             type=ref,event=pr,suffix=-run-id-${{ github.run_id }}
             type=ref,event=pr,suffix=-run-number-${{ github.run_number }}
+          labels: |
+            org.opencontainers.image.version=pr-${{ github.event.number }}
 
       - name: Cache Docker layers
         uses: actions/cache@v2
