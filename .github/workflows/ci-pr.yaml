@@ -293,6 +293,7 @@ jobs:
             type=ref,event=pr,suffix=-run-number-${{ github.run_number }}
           labels: |
             org.opencontainers.image.version=pr-${{ github.event.number }}
+            org.opencontainers.image.source=${{ github.event.pull_request.html_url }}
 
       - name: Cache Docker layers
         uses: actions/cache@v2
