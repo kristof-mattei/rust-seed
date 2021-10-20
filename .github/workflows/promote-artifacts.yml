@@ -29,6 +29,7 @@ jobs:
         env:
           CTX: "${{ toJSON(github) }}"
         run: |
+          echo ${SHA}
           echo ${CTX}
 
       - name: Set up Crane volume and define env variables
@@ -116,7 +117,7 @@ jobs:
       - name: Find the container to which we'll apply our new tag
         if: ${{ env.OLD_TAG == '' }}
         env:
-          SHA: ${{ github.event_name == 'pull_request' && github.pull_request.base.sha || github.sha }}
+          SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
         shell: bash
         run: |
 
