@@ -113,9 +113,9 @@ jobs:
 
           # this step gets executed if we have a PR that didn't build a container (env.OLD_TAG empty)
           # or always in the case of an incoming tag
-          tag_prefix="sha-${SHA}-"
+          tag_prefix="sha-${SHA}-.*"
 
-          old_tag=$(cat existing_tags | grep --only-matching "${tag_prefix}-.*")
+          old_tag=$(cat existing_tags | grep --only-matching "${tag_prefix}")
 
           echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
