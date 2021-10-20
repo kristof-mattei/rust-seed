@@ -289,7 +289,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=pr,suffix=-latest
-            type=ref,event=pr,suffix=-build-
+            type=ref,event=pr,suffix=-run-id-${{ github.run_id }}
+            type=ref,event=pr,suffix=-run-number-${{ github.run_number }}
 
       - name: Cache Docker layers
         uses: actions/cache@v2
