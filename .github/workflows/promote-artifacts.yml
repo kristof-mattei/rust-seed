@@ -26,8 +26,10 @@ jobs:
     steps:
       - name: Dump
         shell: bash
+        env:
+          CTX: "${{ toJSON(github) }}"
         run: |
-          echo "${{ toJSON(github) }}"
+          echo ${CTX}
 
       - name: Set up Crane volume and define env variables
         shell: bash
