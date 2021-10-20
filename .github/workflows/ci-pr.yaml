@@ -43,7 +43,8 @@ jobs:
         with:
           submodules: true
 
-      - uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
+      - name: Check if we actually made changes
+        uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
         id: filter
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
