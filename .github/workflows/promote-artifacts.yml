@@ -70,27 +70,16 @@ jobs:
 
       - name: Find all tags for current "Add or retag the Docker container."
         shell: bash
-        id: tags
         run: |
 
-          existing_tags=$(
+          (
             docker run \
               --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
               --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
               --rm \
               gcr.io/go-containerregistry/crane:latest \
               ls ${FULL_IMAGE_NAME}
-          )
-
-          echo "::set-output name=existing-tags::${existing_tags}"
-
-
-      - name: Debug
-        shell: bash
-        run: |
-
-          echo "${{ steps.tags.output.existing-tags }}"
-
+          ) >> existing_tags
 
       - name: Find out if the incoming PR has a docker image in the form of :pr-<number>
         if: ${{ github.event_name == 'pull_request' }}
@@ -100,7 +89,7 @@ jobs:
         run: |
 
           # search for the tag
-          echo "${{ steps.tags.output.existing-tags }}" | grep ${PR_TAG}
+          cat existing_tags | grep ${PR_TAG}
 
           if [ $? -eq 0 ]
           then
@@ -117,7 +106,7 @@ jobs:
 
           tag_prefix="sha-${SHA}-"
 
-          old_tag=$(echo "${{ steps.tags.output.existing-tags }}" | grep --only-matching ${tag_prefix}-.*)
+          old_tag=(cat existing_tags | grep --only-matching ${tag_prefix}-.*)
 
           echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
