@@ -81,6 +81,8 @@ jobs:
               ls ${FULL_IMAGE_NAME}
           ) >> existing_tags
 
+          cat existing_tags
+
       - name: Find out if the incoming PR has a docker image in the form of :pr-<number>
         if: ${{ github.event_name == 'pull_request' }}
         env:
@@ -135,3 +137,14 @@ jobs:
       #     docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
 
 
+      # - name: Define potential tags, in order
+      #   if: ${{ github.event_name == 'pull_request' }}
+      #   shell: bash
+      #   run: |
+      #     echo foo
+
+      # - name: Eh?
+      #   if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+      #   shell: bash
+      #   run: |
+      #     echo bar
