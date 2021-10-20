@@ -89,10 +89,10 @@ jobs:
         shell: bash
         run: |
 
+          suffix="retag"
+
           # search for the tag
           cat existing_tags | grep ${PR_TAG}
-
-          suffix="retag"
 
           if [ $? -eq 0 ]
           then
