@@ -92,23 +92,17 @@ jobs:
           # search for the tag
           cat existing_tags | grep ${PR_TAG}
 
+          suffix="retag"
+
           if [ $? -eq 0 ]
           then
             echo "Incoming PR produced a Docker image"
             echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
+
+            suffix="actual"
           fi
 
-      - name: New tag only for PR
-        if: ${{ github.event_name == 'pull_request' }}
-        env:
-          SUFFIX: ${{ env.OLD_TAG == '' && 'actual' || 'retag' }}
-        shell: bash
-        run: |
-          # note that depending on
-          # whether the current PR built a container
-          # or not, our suffix is actual
-          # or retag
-          echo "NEW_TAG=sha-${{ github.sha }}-${SUFFIX}" >> ${GITHUB_ENV}
+          echo "NEW_TAG=sha-${{ github.sha }}-${suffix}" >> ${GITHUB_ENV}
 
       - name: Find the container to which we'll apply our new tag
         if: ${{ env.OLD_TAG == '' }}
@@ -134,8 +128,6 @@ jobs:
           echo "NEW_TAG=${{ github.ref_name }}" >> ${GITHUB_ENV}
 
       - name: Actually re-tag the container
-        env:
-          NEW_TAG: ${{ github.event_name == 'pull_request' && github.sha || github.sha }} # when this a tag we actually have to have the tag
         shell: bash
         run: |
 
