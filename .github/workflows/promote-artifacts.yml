@@ -1,4 +1,4 @@
-name: Promote container
+name: Tag containers
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -20,17 +20,10 @@ on:
   # workflow_dispatch:
 
 jobs:
-  collect-previous-tag:
-    name: Collect previous tag
+  retag-containers:
+    name: Retag the containers
     runs-on: ubuntu-latest
     steps:
-      - name: Dump
-        shell: bash
-        env:
-          CTX: "${{ toJSON(github) }}"
-        run: |
-          echo ${SHA}
-          echo ${CTX}
 
       - name: Set up Crane volume and define env variables
         shell: bash
@@ -75,7 +68,7 @@ jobs:
             gcr.io/go-containerregistry/crane:latest \
             auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find all tags for current "Add or retag the Docker container."
+      - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
         shell: bash
         run: |
 
@@ -90,10 +83,10 @@ jobs:
 
           cat existing_tags
 
-      - name: Find out if the incoming PR has a docker image in the form of :pr-<number>
+      - name: Find out if the incoming PR has a docker image in the form of :pr-<number>-latest
         if: ${{ github.event_name == 'pull_request' }}
         env:
-          PR_TAG: "pr-${{ github.event.number }}"
+          PR_TAG: "pr-${{ github.event.number }}-latest"
         shell: bash
         run: |
           suffix="retag"
