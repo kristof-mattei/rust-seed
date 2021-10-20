@@ -108,7 +108,7 @@ jobs:
 
           tag_prefix="sha-${SHA}-"
 
-          old_tag=(cat existing_tags | grep --only-matching ${tag_prefix}-.*)
+          old_tag=$(cat existing_tags | grep --only-matching ${tag_prefix}-.*)
 
           echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
