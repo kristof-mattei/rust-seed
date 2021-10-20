@@ -90,20 +90,17 @@ jobs:
         run: |
           suffix="retag"
 
-          echo "foo"
+          # search for the tag, and get the cargo2
+          # it can only happen once
+          pr_tag_found=$(cat existing_tags | grep -c "^${PR_TAG}\$)"
 
-          # search for the tag
-          cat existing_tags | grep ${PR_TAG}
-
-          if [ $? -eq 0 ]
+          if [ $pr_tag_found -eq 1 ]
           then
             echo "Incoming PR produced a Docker image"
             echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
 
             suffix="actual"
           fi
-
-          echo "bar"
 
           echo "NEW_TAG=sha-${{ github.sha }}-${suffix}" >> ${GITHUB_ENV}
 
@@ -116,9 +113,7 @@ jobs:
 
           # this step gets executed if we have a PR that didn't build a container (env.OLD_TAG empty)
           # or always in the case of an incoming tag
-          tag_prefix="sha-${SHA}-.*"
-
-          old_tag=$(cat existing_tags | grep --only-matching "${tag_prefix}")
+          old_tag=$(cat existing_tags | grep "^sha-${SHA}-.*\$")
 
           echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
