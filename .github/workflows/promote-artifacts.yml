@@ -27,7 +27,7 @@ jobs:
       - name: Dump
         shell: bash
         run: |
-          echo "${{ toJson(github) }}"
+          echo "${{ toJSON(github) }}"
 
       - name: Set up Crane volume and define env variables
         shell: bash
