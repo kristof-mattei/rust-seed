@@ -117,6 +117,8 @@ jobs:
         shell: bash
         run: |
 
+          echo "tag \"${FULL_IMAGE_NAME}:${OLD_TAG}\" ${NEW_TAG}"
+
           docker run \
             --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
             --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
