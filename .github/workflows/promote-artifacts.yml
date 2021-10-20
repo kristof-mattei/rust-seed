@@ -24,6 +24,11 @@ jobs:
     name: Collect previous tag
     runs-on: ubuntu-latest
     steps:
+      - name: Dump
+        shell: bash
+        run: |
+          echo "${{ toJson(github) }}"
+
       - name: Set up Crane volume and define env variables
         shell: bash
         run: |
