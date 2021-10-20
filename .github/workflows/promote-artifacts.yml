@@ -113,9 +113,11 @@ jobs:
 
       - name: Actually re-tag the container
         env:
-          NEW_TAG: ${{ github.event_name == 'pull_request' && 'pr-${{ github.event.number }}' || github.sha }}
+          NEW_TAG: ${{ github.event_name == 'pull_request' && github.sha || github.sha }} # when this a tag we actually have to have the tag
         shell: bash
         run: |
+
+          echo "tag \"${FULL_IMAGE_NAME}:${OLD_TAG}\" ${NEW_TAG}"
 
           docker run \
             --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
