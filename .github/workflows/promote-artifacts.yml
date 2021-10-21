@@ -70,6 +70,7 @@ jobs:
 
       - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
         shell: bash
+        id: find-existing-tags
         run: |
 
           (
@@ -81,7 +82,7 @@ jobs:
               ls ${FULL_IMAGE_NAME}
           ) >> existing_tags
 
-          cat existing_tags
+          echo "::set-output name=tags::$(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output)"
 
       - name: Find out if the incoming PR has a docker image in the form of :pr-<number>-latest
         if: ${{ github.event_name == 'pull_request' }}
@@ -124,6 +125,13 @@ jobs:
         if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
         shell: bash
         run: |
+          # tags: |
+          #   # output 0.1.2
+          #   type=semver,pattern=v{{version}}
+          #   # output 0.1
+          #   type=semver,pattern=v{{major}}.{{minor}}
+          #   # disabled if major zero
+          #   type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
 
           # the new docker tag, for incoming tags
           echo "NEW_TAG=${{ github.ref_name }}" >> ${GITHUB_ENV}
