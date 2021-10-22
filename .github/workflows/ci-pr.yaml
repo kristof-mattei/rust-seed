@@ -9,6 +9,10 @@ on:
   #   branches-ignore:
   #     - main
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   CARGO_TERM_COLOR: always
   # Use docker.io for Docker Hub if empty
