@@ -81,14 +81,11 @@ jobs:
 
           echo $asArray
 
-          echo "::set-output name=tags::fromJSON(${asArray})"
+          echo "::set-output name=tags::${asArray}"
 
       - shell: bash
         run: |
-
-          echo "${{ steps.find-existing-tags.outputs.tags }}"
           echo "${{ fromJSON(steps.find-existing-tags.outputs.tags) }}"
-
 
       - name: Contains PR-31
         shell: bash
@@ -98,7 +95,7 @@ jobs:
           echo "Should print"
 
       - shell: bash
-        if: ${{ contains(steps.find-existing-tags.outputs.tags, 'pr-fllllllllll31') }}
+        if: ${{ contains(fromJSON(steps.find-existing-tags.outputs.tags), 'pr-33333333331') }}
         run: |
 
           echo "Shouldn't print"
