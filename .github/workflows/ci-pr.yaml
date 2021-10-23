@@ -4,10 +4,6 @@ on:
   pull_request:
     branches:
       - main
-  # I need to find out a way to kill the push triggered event when there's a matching pull_request trigger
-  push:
-    branches-ignore:
-      - main
 
 permissions:
   contents: read
@@ -24,25 +20,13 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 
-# concurrency:
-#   group: pr-${{ github.event.number }} # ${{ github.head_ref }}${{ github.ref }} <- when we expand to non-PRs
-#   cancel-in-progress: true
+concurrency:
+  # each new commit to a PR runs this workflow
+  # so we need to avoid a long running older one from overwriting the 'pr-<number>-latest'
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label }}'
+  cancel-in-progress: true
 
 jobs:
-  # cancel-push-runs-on-pr-event:
-  #   if: ${{ (github.repository == 'Kristof-Mattei/rust-integrity-playground') && (github.event_name == 'pull_request')  }}
-  #   runs-on: ubuntu-latest
-  #   # This interrupts Build and Deploy workflow runs in progress for this PR
-  #   # branch. However, it does so with an intentionally short, independent job
-  #   # so that the following `undeploy` job cannot be cancelled once started!
-  #   concurrency:
-  #     group: 'PR Staging @ ${{ github.event.pull_request.head.label }}'
-  #     cancel-in-progress: true
-  #   steps:
-  #     - name: Cancelling other deployments via concurrency configuration
-  #       run: |
-  #         echo 'Cancelling other deployment runs (if any)...'
-
   dump:
     name: Dump
     runs-on: ubuntu-latest
@@ -311,6 +295,12 @@ jobs:
   #       with:
   #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
   #         tags: |
+  #           # TODO this is unsafe, what if an older build finishes later?
+  #           # I don't know how concurrency comes into play with this?
+  #           # maybe concurrency can help us here, but only if
+  #           # the concurrency is evaluated when a workflow is loaded
+  #           # and not when a job executes
+  #           # because that would allow a previous job to finish LATER
   #           type=ref,event=pr,suffix=-latest
   #           type=ref,event=pr,suffix=-run-id-${{ github.run_id }}
   #           type=ref,event=pr,suffix=-run-number-${{ github.run_number }}

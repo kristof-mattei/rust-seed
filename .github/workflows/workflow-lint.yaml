@@ -4,6 +4,10 @@ name: Lint workflows
 # **Why we have it**: We want some level of consistency in our workflow files.
 # **Who does it impact**: Developers.
 
+permissions:
+  contents: read
+
+
 on:
   workflow_dispatch:
   push:
