@@ -91,7 +91,7 @@ jobs:
 
       - name: Contains PR-31
         shell: bash
-        if: ${{ contains(steps.find-existing-tags.outputs.tags, 'pr-31') }}
+        if: ${{ contains(from(JSON(steps.find-existing-tags.outputs.tags), 'pr-31') }}
         run: |
 
           echo "Should print"
