@@ -92,7 +92,7 @@ jobs:
         with:
           script: |
 
-            const tag = [];
+            const tags = [];
 
             const options = {};
             options.listeners = {
@@ -114,7 +114,7 @@ jobs:
                                   "ls",
                                   FULL_IMAGE_NAME]);
 
-            core.setOutput("tags", tag);
+            core.setOutput("tags", tags);
 
 
       - shell: bash
