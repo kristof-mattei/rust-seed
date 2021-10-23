@@ -81,7 +81,7 @@ jobs:
 
           echo $asArray
 
-          echo "::set-output name=tags::${asArray}"
+          echo "::set-output name=tags::fromJSON(${asArray})"
 
       - shell: bash
         run: |
