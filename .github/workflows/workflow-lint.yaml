@@ -19,7 +19,7 @@ on:
 
 jobs:
   lint:
-    if: ${{ github.repository == 'github/docs-internal' }}
+    if: ${{ github.repository == 'Kristof-Mattei/rust-integrity-playground' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
