@@ -19,6 +19,11 @@ on:
   # I don't think we need this
   # workflow_dispatch:
 
+env:
+  OLD_TAG: ""
+  FULL_IMAGE_NAME: ""
+  CRANE_DOCKER_CONFIG_VOLUME: ""
+
 jobs:
   retag-containers:
     name: Retag the containers

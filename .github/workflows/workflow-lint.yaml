@@ -4,7 +4,8 @@ name: Lint workflows
 # **Why we have it**: We want some level of consistency in our workflow files.
 # **Who does it impact**: Developers.
 
-permissions: write-all
+permissions:
+  contents: read
 
 
 on:
