@@ -61,7 +61,15 @@ jobs:
         uses: actions/github-script@v5
         with:
           script: |
+            const options = {};
 
+
+            const options = {};
+            options.listeners = {
+              debug: (data) => {
+                console.log(data);
+              },
+            };
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY } = process.env;
 
             await exec.exec("docker", [`run --env DOCKER_CONFIG="${CRANE_DOCKER_CONFIG_LOCATION}"`,
