@@ -78,3 +78,9 @@ jobs:
           ) >> existing_tags
 
           echo "::set-output name=tags::$(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output)"
+
+      - name: Dump tags
+        shell: bash
+        run: |
+
+          echo "${{ find-existing-tags.output.tags }}"
