@@ -62,9 +62,6 @@ jobs:
         with:
           script: |
             const options = {};
-
-
-            const options = {};
             options.listeners = {
               debug: (data) => {
                 console.log(data);
