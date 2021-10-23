@@ -36,17 +36,19 @@ jobs:
         with:
           images: foooooooooooooo/bar
           tags: |
-            # output 0.1.2
             type=raw,value=1.1.2
-            # output 0.1
             type=raw,value=1.1
-            # disabled if major zero
             type=raw,value=1
 
       - name: Dump
         shell: bash
         run: |
-          echo ${{ steps.meta.outputs.tags }}
+          cat $(echo ${{ steps.meta.outputs.tags }}) | while read line
+          do
+            echo $line
+          done
+
+
 
   # changes:
   #   name: Detect changes
