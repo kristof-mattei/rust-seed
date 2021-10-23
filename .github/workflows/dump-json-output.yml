@@ -64,7 +64,7 @@ jobs:
 
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY } = process.env;
 
-            await exec("docker", ["run",
+            await exec.exec("docker", ["run",
                                   `--env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
                                   `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
                                   "--rm",
@@ -90,7 +90,7 @@ jobs:
 
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY, FULL_IMAGE_NAME } = process.env;
 
-            await exec("docker", ["run",
+            await exec.exec("docker", ["run",
                                   `--env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
                                   `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
                                   "--rm",
