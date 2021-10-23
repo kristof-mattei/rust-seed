@@ -4,21 +4,8 @@ name: Lint workflows
 # **Why we have it**: We want some level of consistency in our workflow files.
 # **Who does it impact**: Developers.
 
-permissions:
-  # contents: read
-  # id-token: read
+permissions: write-all
 
-  actions: read
-  checks: read
-  contents: read
-  deployments: read
-  issues: read
-  packages: read
-  pull-requests: read
-  repository-projects: read
-  security-events: read
-  statuses: read
-  id-token: write
 
 on:
   workflow_dispatch:
