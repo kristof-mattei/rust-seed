@@ -3,9 +3,6 @@ It's written in Rust!
 
 I hope my Rust doesn't get rusty...
 
-<https://instantrimshot.com/>
-
-
 ## TODO:
 Figure out how to deal with PRs pushing too many docker containers.
 
