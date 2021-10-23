@@ -11,6 +11,10 @@ on:
   # Triggers the workflow pushes to main, which by control in GitHub should only be PR merges
   pull_request:
     branches: [main]
+
+permissions:
+  packages: read
+
 jobs:
   retag-containers:
     name: Retag the containers
