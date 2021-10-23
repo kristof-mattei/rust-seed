@@ -47,10 +47,15 @@ jobs:
             sh -c "chmod 700 ${CRANE_DOCKER_CONFIG_LOCATION} && chown 65532:65532 ${CRANE_DOCKER_CONFIG_LOCATION}"
 
       - name: Set full image name
-        shell: bash
-        run: |
+        uses: actions/github-script@v5
+        with:
+          script: |
 
-          echo "FULL_IMAGE_NAME=${REGISTRY,,}/${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+            const { REGISTRY, IMAGE_NAME } = process.env;
+
+            const full_image_name = `${REGISTRY.toLower()}/${IMAGE_NAME.toLower()}`
+
+            core.exportVariable("FULL_IMAGE_NAME", full_image_name)
 
       - name: Crane login
         shell: bash
