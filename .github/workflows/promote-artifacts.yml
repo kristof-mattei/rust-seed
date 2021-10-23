@@ -119,7 +119,7 @@ jobs:
         env:
           SUFFIX: ${{ fromJSON(format('["{0}", "{1}"]', 'actual', 'retag'))[env.PR_TAG == ''] }}
         with:
-          images: ""
+          images: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           tags: |
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
@@ -136,7 +136,7 @@ jobs:
               --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
               --rm \
               gcr.io/go-containerregistry/crane:latest \
-              tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${new_tag}
+              cp "${FULL_IMAGE_NAME}:${OLD_TAG}" ${new_tag}
           done
 
       - name: Cleanup!
