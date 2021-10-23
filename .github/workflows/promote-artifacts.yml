@@ -127,16 +127,15 @@ jobs:
       - name: Actually re-tag the container
         shell: bash
         run: |
-          echo "tag \"${FULL_IMAGE_NAME}:${OLD_TAG}\" ${NEW_TAG}"
-
-          # TODO new tags
-
-          docker run \
-            --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
-            --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
-            --rm \
-            gcr.io/go-containerregistry/crane:latest \
-            tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${NEW_TAG}
+          echo "${{ steps.meta.outputs.tags }}" | while read new_tag
+          do
+            docker run \
+              --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
+              --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
+              --rm \
+              gcr.io/go-containerregistry/crane:latest \
+              tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${new_tag}
+          done
 
       - name: Cleanup!
         if: ${{ always() }}
