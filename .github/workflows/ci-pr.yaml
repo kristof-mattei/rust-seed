@@ -46,6 +46,7 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" | while read line
           do
             echo $line
+            echo "per line"
           done
 
   # changes:
