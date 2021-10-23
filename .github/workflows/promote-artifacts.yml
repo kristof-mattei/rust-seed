@@ -84,6 +84,8 @@ jobs:
             gcr.io/go-containerregistry/crane:latest \
             ls ${FULL_IMAGE_NAME} >> existing_tags
 
+          cat existing_tags
+
       - name: Check if the incoming PR has a Docker container, which will be our old tag
         if: ${{ github.event_name == 'pull_request' }}
         env:
