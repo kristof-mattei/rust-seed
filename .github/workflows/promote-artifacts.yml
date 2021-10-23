@@ -122,7 +122,7 @@ jobs:
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=sha,format=long,prefix=sha-,suffix=${{ env.SUFFIX }},enable=${{ github.event_name == 'pull_request' }}
+            type=sha,format=long,prefix=sha-,suffix=-${{ env.SUFFIX }},enable=${{ github.event_name == 'pull_request' }}
 
       - name: Actually re-tag the container
         shell: bash
