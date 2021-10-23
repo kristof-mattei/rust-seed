@@ -64,8 +64,7 @@ jobs:
 
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY } = process.env;
 
-            await exec.exec("docker", ["run",
-                                  `--env DOCKER_CONFIG="${CRANE_DOCKER_CONFIG_LOCATION}"`,
+            await exec.exec("docker", ["run --env DOCKER_CONFIG="${CRANE_DOCKER_CONFIG_LOCATION}"`,
                                   `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
                                   "--rm",
                                   "gcr.io/go-containerregistry/crane:latest",
