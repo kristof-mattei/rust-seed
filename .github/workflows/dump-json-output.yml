@@ -95,7 +95,7 @@ jobs:
 
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY, FULL_IMAGE_NAME } = process.env;
 
-            let { stdout } = await exec.exec("docker", [
+            let { stdout } = await exec.getExecOutput("docker", [
                                   "run",
                                   "--env",
                                   `DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
