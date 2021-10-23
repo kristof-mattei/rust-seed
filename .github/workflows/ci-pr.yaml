@@ -13,7 +13,7 @@ permissions:
   contents: read
   checks: write
   pull-requests: read
-  issues: read
+  issues: write
   packages: write
 
 env:
@@ -29,123 +29,123 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dump:
-    name: Dump
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dump
-        shell: bash
-        env:
-          CTX: "${{ toJSON(github) }}"
-        run: |
-          echo ${CTX}
+  # dump:
+  #   name: Dump
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Dump
+  #       shell: bash
+  #       env:
+  #         CTX: "${{ toJSON(github) }}"
+  #       run: |
+  #         echo ${CTX}
 
-  changes:
-    name: Detect changes
-    runs-on: ubuntu-latest
-    outputs:
-      # code: ${{ steps.filter.outputs.code }}
-      code: "true"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
+  # changes:
+  #   name: Detect changes
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     # code: ${{ steps.filter.outputs.code }}
+  #     code: "true"
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #       with:
+  #         submodules: true
 
-      - name: Check if we actually made changes
-        uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
-        id: filter
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          filters: .github/file-filters.yml
+  #     - name: Check if we actually made changes
+  #       uses: ./.github/actions/dorny/paths-filter # since this is a submodule, it depends on which version is pinned
+  #       id: filter
+  #       with:
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         filters: .github/file-filters.yml
 
-  cargo-build:
-    name: Cargo build
-    runs-on: ubuntu-latest
-    needs:
-      - changes
-    if: |
-      (needs.changes.outputs.code == 'true')
+  # cargo-build:
+  #   name: Cargo build
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - changes
+  #   if: |
+  #     (needs.changes.outputs.code == 'true')
 
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         submodules: true
 
-      - name: Set up toolchain
-        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+  #     - name: Set up toolchain
+  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        env:
-          CACHE_NAME: cargo-cache-dependencies
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
-          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargobuild
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
-            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+  #     - name: Cache dependencies
+  #       uses: actions/cache@v2
+  #       env:
+  #         CACHE_NAME: cargo-cache-dependencies
+  #       with:
+  #         path: |
+  #           ~/.cargo/.crates.toml
+  #           ~/.cargo/.crates2.json
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target
+  #         key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargobuild
+  #         restore-keys: |
+  #           ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+  #           ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
-      - name: Build
-        uses: ./.github/actions/actions-rs/cargo
-        with:
-          command: build
-          args: --verbose
+  #     - name: Build
+  #       uses: ./.github/actions/actions-rs/cargo
+  #       with:
+  #         command: build
+  #         args: --verbose
 
-  cargo-fmt:
-    name: Check formatting
-    runs-on: ubuntu-latest
-    needs:
-      - changes
-    if: |
-      (needs.changes.outputs.code == 'true')
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
+  # cargo-fmt:
+  #   name: Check formatting
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - changes
+  #   if: |
+  #     (needs.changes.outputs.code == 'true')
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         submodules: true
 
-      - name: Set up toolchain
-        uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt
+  #     - name: Set up toolchain
+  #       uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
+  #         components: rustfmt
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        env:
-          CACHE_NAME: cargo-cache-dependencies
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
-          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargofmt
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
-            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+  #     - name: Cache dependencies
+  #       uses: actions/cache@v2
+  #       env:
+  #         CACHE_NAME: cargo-cache-dependencies
+  #       with:
+  #         path: |
+  #           ~/.cargo/.crates.toml
+  #           ~/.cargo/.crates2.json
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target
+  #         key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargofmt
+  #         restore-keys: |
+  #           ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+  #           ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
-      - name: Fmt
-        uses: ./.github/actions/actions-rs/cargo
-        with:
-          command: fmt
-          args: --all -- --check
+  #     - name: Fmt
+  #       uses: ./.github/actions/actions-rs/cargo
+  #       with:
+  #         command: fmt
+  #         args: --all -- --check
 
   cargo-test-and-report:
     name: Cargo test and report
@@ -214,55 +214,55 @@ jobs:
           # fail_ci_if_error: true
 
 
-  cargo-clippy-and-report:
-    name: Run Clippy
-    runs-on: ubuntu-latest
-    needs:
-      - changes
-    if: |
-      (needs.changes.outputs.code == 'true')
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
+  # cargo-clippy-and-report:
+  #   name: Run Clippy
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - changes
+  #   if: |
+  #     (needs.changes.outputs.code == 'true')
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         submodules: true
 
-      - name: Set up toolchain
-        uses: ./.github/actions/actions-rs/toolchain
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: clippy
+  #     - name: Set up toolchain
+  #       uses: ./.github/actions/actions-rs/toolchain
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
+  #         components: clippy
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        env:
-          CACHE_NAME: cargo-cache-dependencies
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
-          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargoclippy
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
-            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+  #     - name: Cache dependencies
+  #       uses: actions/cache@v2
+  #       env:
+  #         CACHE_NAME: cargo-cache-dependencies
+  #       with:
+  #         path: |
+  #           ~/.cargo/.crates.toml
+  #           ~/.cargo/.crates2.json
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target
+  #         key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargoclippy
+  #         restore-keys: |
+  #           ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+  #           ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
-      - name: Clippy
-        uses: ./.github/actions/actions-rs/cargo
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D warnings
+  #     - name: Clippy
+  #       uses: ./.github/actions/actions-rs/cargo
+  #       with:
+  #         command: clippy
+  #         args: --all-targets --all-features -- -D warnings
 
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets --all-features -- -D warnings
-          name: Clippy report
+  #     - uses: actions-rs/clippy-check@v1
+  #       with:
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         args: --all-targets --all-features -- -D warnings
+  #         name: Clippy report
 
   publish:
     name: Build docker container and publish
