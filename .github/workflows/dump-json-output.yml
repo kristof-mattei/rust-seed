@@ -65,11 +65,11 @@ jobs:
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY } = process.env;
 
             await exec.exec("docker", ["run",
-                                  `--env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
+                                  `--env DOCKER_CONFIG="${CRANE_DOCKER_CONFIG_LOCATION}"`,
                                   `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
                                   "--rm",
                                   "gcr.io/go-containerregistry/crane:latest",
-                                  `auth login ${REGISTRY} -u ${github.actor} -p ${{ secrets.GITHUB_TOKEN }}`]);
+                                  `auth login ${REGISTRY} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}`]);
 
       - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
         uses: actions/github-script@v5
@@ -91,7 +91,7 @@ jobs:
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY, FULL_IMAGE_NAME } = process.env;
 
             await exec.exec("docker", ["run",
-                                  `--env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
+                                  `--env DOCKER_CONFIG="${CRANE_DOCKER_CONFIG_LOCATION}"`,
                                   `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
                                   "--rm",
                                   "gcr.io/go-containerregistry/crane:latest",
