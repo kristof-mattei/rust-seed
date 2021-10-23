@@ -256,7 +256,6 @@ jobs:
     #   - cargo-fmt
     #   - cargo-test-and-report
     #   - cargo-clippy-and-report
-    if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
