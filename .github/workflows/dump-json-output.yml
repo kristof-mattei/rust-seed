@@ -81,12 +81,13 @@ jobs:
 
           echo $asArray
 
-          echo "::set-output name=tags::fromJSON(${asArray})"
+          echo "::set-output name=tags::${asArray}"
 
       - shell: bash
         run: |
 
           echo "${{ steps.find-existing-tags.outputs.tags }}"
+          echo "${{ fromJSON(steps.find-existing-tags.outputs.tags) }}"
 
 
       - name: Contains PR-31
