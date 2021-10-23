@@ -10,8 +10,8 @@ env:
 on:
   # Triggers the workflow pushes to main, which by control in GitHub should only be PR merges
   pull_request:
-    branches: [ main ]
-    types: [ closed ]
+    branches: [main]
+    types: [closed]
   push:
     tags:
       - "v**"
@@ -19,17 +19,11 @@ on:
   # I don't think we need this
   # workflow_dispatch:
 
-env:
-  OLD_TAG: ""
-  FULL_IMAGE_NAME: ""
-  CRANE_DOCKER_CONFIG_VOLUME: ""
-
 jobs:
   retag-containers:
     name: Retag the containers
     runs-on: ubuntu-latest
     steps:
-
       - name: Set up Crane volume and define env variables
         shell: bash
         run: |
@@ -159,4 +153,3 @@ jobs:
         shell: bash
         run: |
           docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
-
