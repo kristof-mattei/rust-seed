@@ -53,40 +53,51 @@ jobs:
 
             const { REGISTRY, IMAGE_NAME } = process.env;
 
-            const full_image_name = `${REGISTRY.toLowerCase()}/${IMAGE_NAME.toLowerCase()}`
+            const full_image_name = `${REGISTRY.toLowerCase()}/${IMAGE_NAME.toLowerCase()}`;
 
-            core.exportVariable("FULL_IMAGE_NAME", full_image_name)
+            core.exportVariable("FULL_IMAGE_NAME", full_image_name);
 
       - name: Crane login
-        shell: bash
-        run: |
+        uses: actions/github-script@v5
+        with:
+          script: |
 
-          docker run \
-            --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
-            --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
-            --rm \
-            gcr.io/go-containerregistry/crane:latest \
-            auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY } = process.env;
+
+            await exec("docker", ["run",
+                                  `--env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
+                                  `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
+                                  "--rm",
+                                  "gcr.io/go-containerregistry/crane:latest",
+                                  `auth login ${REGISTRY} -u ${github.actor} -p ${secrets.GITHUB_TOKEN}`]);
 
       - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
-        shell: bash
+        uses: actions/github-script@v5
         id: find-existing-tags
-        run: |
+        with:
+          script: |
 
-          (
-            docker run \
-              --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
-              --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
-              --rm \
-              gcr.io/go-containerregistry/crane:latest \
-              ls ${FULL_IMAGE_NAME}
-          ) >> existing_tags
+            const options = {};
 
-          asArray=$(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output)
+            const tag = [];
 
-          echo $asArray
+            const options = {};
+            options.listeners = {
+              stdout: (data: Buffer) => {
+                data.toString().split("\n").forEach(tags.push);
+              },
+            };
 
-          echo "::set-output name=tags::${asArray}"
+            const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY, FULL_IMAGE_NAME } = process.env;
+
+            await exec("docker", ["run",
+                                  `--env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
+                                  `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
+                                  "--rm",
+                                  "gcr.io/go-containerregistry/crane:latest",
+
+            core.setOutput("tags", full_image_name);
+
 
       - shell: bash
         run: |
