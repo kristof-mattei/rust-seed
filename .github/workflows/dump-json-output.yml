@@ -92,18 +92,9 @@ jobs:
         with:
           script: |
 
-            const tags = [];
-
-            const options = {};
-            options.listeners = {
-              stdout: (data: Buffer) => {
-                data.toString().split("\n").forEach(tags.push);
-              },
-            };
-
             const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY, FULL_IMAGE_NAME } = process.env;
 
-            await exec.exec("docker", [
+            let { stdout } = await exec.exec("docker", [
                                   "run",
                                   "--env",
                                   `DOCKER_CONFIG=\"${CRANE_DOCKER_CONFIG_LOCATION}\"`,
@@ -114,7 +105,7 @@ jobs:
                                   "ls",
                                   FULL_IMAGE_NAME]);
 
-            core.setOutput("tags", tags);
+            core.setOutput("tags", stdout.split("\n"));
 
 
       - shell: bash
