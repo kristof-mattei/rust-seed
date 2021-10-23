@@ -77,7 +77,11 @@ jobs:
               ls ${FULL_IMAGE_NAME}
           ) >> existing_tags
 
-          echo "::set-output name=tags::fromJSON($(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output))"
+          asArray=$(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output)
+
+          echo $asArray
+
+          echo "::set-output name=tags::\"fromJSON(${asArray})\""
 
       - name: Dump tags
         shell: bash
