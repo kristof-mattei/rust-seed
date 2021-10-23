@@ -43,7 +43,7 @@ jobs:
       - name: Dump
         shell: bash
         run: |
-          "${{ steps.meta.outputs.tags }}" | while read line
+          echo "${{ steps.meta.outputs.tags }}" | while read line
           do
             echo $line
           done
