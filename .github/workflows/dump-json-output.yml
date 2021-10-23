@@ -87,4 +87,4 @@ jobs:
         shell: bash
         run: |
 
-          echo "${{ steps.find-existing-tags.output.tags }}"
+          echo "${{ steps.find-existing-tags.outputs.tags }}"
