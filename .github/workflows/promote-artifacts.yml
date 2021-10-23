@@ -119,7 +119,7 @@ jobs:
         env:
           SUFFIX: ${{ fromJSON(format('["{0}", "{1}"]', 'actual', 'retag'))[env.PR_TAG == ''] }}
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ""
           tags: |
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
