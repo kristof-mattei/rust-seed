@@ -53,7 +53,7 @@ jobs:
 
             const { REGISTRY, IMAGE_NAME } = process.env;
 
-            const full_image_name = `${REGISTRY.toLower()}/${IMAGE_NAME.toLower()}`
+            const full_image_name = `${REGISTRY.toLowerCase()}/${IMAGE_NAME.toLowerCase()}`
 
             core.exportVariable("FULL_IMAGE_NAME", full_image_name)
 
