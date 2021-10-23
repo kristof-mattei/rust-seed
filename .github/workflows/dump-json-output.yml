@@ -69,7 +69,7 @@ jobs:
                                   `--mount ${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}`,
                                   "--rm",
                                   "gcr.io/go-containerregistry/crane:latest",
-                                  `auth login ${REGISTRY} -u ${github.actor} -p ${secrets.GITHUB_TOKEN}`]);
+                                  `auth login ${REGISTRY} -u ${github.actor} -p ${{ secrets.GITHUB_TOKEN }}`]);
 
       - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
         uses: actions/github-script@v5
