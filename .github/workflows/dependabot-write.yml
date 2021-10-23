@@ -1,11 +1,9 @@
 # this to ensure that Dependabot has write rights to our registry
 name: Dependabot Workflow
-on:
-  pull_request_target
-
+on: pull_request_target
 
 # permissions:
-  # Downscope as necessary, since you now have a read-write token
+# Downscope as necessary, since you now have a read-write token
 
 jobs:
   dependabot:

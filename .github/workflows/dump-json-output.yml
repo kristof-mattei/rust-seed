@@ -47,67 +47,37 @@ jobs:
             sh -c "chmod 700 ${CRANE_DOCKER_CONFIG_LOCATION} && chown 65532:65532 ${CRANE_DOCKER_CONFIG_LOCATION}"
 
       - name: Set full image name
-        uses: actions/github-script@v5
-        with:
-          script: |
+        shell: bash
+        run: |
 
-            const { REGISTRY, IMAGE_NAME } = process.env;
-
-            const full_image_name = `${REGISTRY.toLowerCase()}/${IMAGE_NAME.toLowerCase()}`;
-
-            core.exportVariable("FULL_IMAGE_NAME", full_image_name);
+          echo "FULL_IMAGE_NAME=${REGISTRY,,}/${IMAGE_NAME,,}" >> ${GITHUB_ENV}
 
       - name: Crane login
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const options = {};
-            options.listeners = {
-              debug: (data) => {
-                console.log(data);
-              },
-            };
+        shell: bash
+        run: |
 
-            const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY } = process.env;
-
-            await exec.exec("docker", [
-                                  "run",
-                                  "--env",
-                                  `DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
-                                  "--mount",
-                                  CRANE_DOCKER_CONFIG_VOLUME_MOUNT,
-                                  "--rm",
-                                  "gcr.io/go-containerregistry/crane:latest",
-                                  "auth",
-                                  "login",
-                                  REGISTRY,
-                                  "-u",
-                                  "${{ github.actor }}",
-                                  "-p",
-                                  "${{ secrets.GITHUB_TOKEN }}",
-                                ]);
+          docker run \
+            --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
+            --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
+            --rm \
+            gcr.io/go-containerregistry/crane:latest \
+            auth login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
-        uses: actions/github-script@v5
+        shell: bash
         id: find-existing-tags
-        with:
-          script: |
+        run: |
 
-            const { CRANE_DOCKER_CONFIG_LOCATION, CRANE_DOCKER_CONFIG_VOLUME_MOUNT, REGISTRY, FULL_IMAGE_NAME } = process.env;
+          (
+            docker run \
+              --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
+              --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
+              --rm \
+              gcr.io/go-containerregistry/crane:latest \
+              ls ${FULL_IMAGE_NAME}
+          ) >> existing_tags
 
-            let { stdout } = await exec.getExecOutput("docker", [
-                                  "run",
-                                  "--env",
-                                  `DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION}`,
-                                  "--mount",
-                                  CRANE_DOCKER_CONFIG_VOLUME_MOUNT,
-                                  "--rm",
-                                  "gcr.io/go-containerregistry/crane:latest",
-                                  "ls",
-                                  FULL_IMAGE_NAME]);
-
-            core.setOutput("tags", stdout.split("\n"));
-
+          echo "::set-output name=tags::$(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output)"
 
       - shell: bash
         run: |
