@@ -5,8 +5,8 @@ name: Lint workflows
 # **Who does it impact**: Developers.
 
 permissions:
-  actions: read
   contents: read
+  id-token: read
 
 
 on:
