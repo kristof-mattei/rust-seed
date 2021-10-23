@@ -10,8 +10,8 @@ env:
 on:
   # Triggers the workflow pushes to main, which by control in GitHub should only be PR merges
   pull_request:
-    branches: [ main ]
-    types: [ closed ]
+    branches: [main]
+    types: [closed]
   push:
     tags:
       - "v**"
@@ -19,28 +19,28 @@ on:
   # I don't think we need this
   # workflow_dispatch:
 
+permissions:
+  packages: write
+
 jobs:
   retag-containers:
     name: Retag the containers
     runs-on: ubuntu-latest
     steps:
-
       - name: Set up Crane volume and define env variables
         shell: bash
         run: |
 
+          # for security purposes let's create a volume for .docker in crane
           CRANE_DOCKER_CONFIG_VOLUME="crane_docker_config"
+
+          CRANE_DOCKER_CONFIG_LOCATION="/.docker_config"
+
+          # this volume will hold the the docker.json
           docker volume create ${CRANE_DOCKER_CONFIG_VOLUME};
 
-          # for security purposes let's create a volume for .docker in crane
-          CRANE_DOCKER_CONFIG_LOCATION="/${CRANE_DOCKER_CONFIG_VOLUME}"
-
-          # generalize the mount config
+          # generalize the mount config, which we'll export later too
           CRANE_DOCKER_CONFIG_VOLUME_MOUNT="type=volume,src=${CRANE_DOCKER_CONFIG_VOLUME},dst=${CRANE_DOCKER_CONFIG_LOCATION}"
-
-          echo "CRANE_DOCKER_CONFIG_VOLUME=${CRANE_DOCKER_CONFIG_VOLUME}" >> ${GITHUB_ENV}
-          echo "CRANE_DOCKER_CONFIG_LOCATION=${CRANE_DOCKER_CONFIG_LOCATION}" >> ${GITHUB_ENV}
-          echo "CRANE_DOCKER_CONFIG_VOLUME_MOUNT=${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" >> ${GITHUB_ENV}
 
           # prepare the volume so that crane can write to is
           # note that the ${} passed in via sh are rendered before we run the container
@@ -50,6 +50,11 @@ jobs:
             --rm \
             alpine:latest \
             sh -c "chmod 700 ${CRANE_DOCKER_CONFIG_LOCATION} && chown 65532:65532 ${CRANE_DOCKER_CONFIG_LOCATION}"
+
+          # export the variables for future opertions
+          echo "CRANE_DOCKER_CONFIG_VOLUME=${CRANE_DOCKER_CONFIG_VOLUME}" >> ${GITHUB_ENV}
+          echo "CRANE_DOCKER_CONFIG_LOCATION=${CRANE_DOCKER_CONFIG_LOCATION}" >> ${GITHUB_ENV}
+          echo "CRANE_DOCKER_CONFIG_VOLUME_MOUNT=${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" >> ${GITHUB_ENV}
 
       - name: Set full image name
         shell: bash
@@ -70,88 +75,70 @@ jobs:
 
       - name: Find all tags for ${{ env.FULL_IMAGE_NAME }}
         shell: bash
-        id: find-existing-tags
         run: |
-
-          (
-            docker run \
-              --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
-              --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
-              --rm \
-              gcr.io/go-containerregistry/crane:latest \
-              ls ${FULL_IMAGE_NAME}
-          ) >> existing_tags
-
-          echo "::set-output name=tags::$(cat existing_tags | jq --raw-input . | jq --slurp . | jq --compact-output)"
-
-      - name: Find out if the incoming PR has a docker image in the form of :pr-<number>-latest
-        if: ${{ github.event_name == 'pull_request' }}
-        env:
-          PR_TAG: "pr-${{ github.event.number }}-latest"
-        shell: bash
-        run: |
-          suffix="retag"
-
-          # search for the tag, and get the cargo2
-          # it can only happen once
-          # we need the || true because
-          # otherwise grep returns exit code 1 and github actions then dies
-          pr_tag_found=$(cat existing_tags | grep -c "^${PR_TAG}\$") || true
-
-          if [ $pr_tag_found -eq 1 ]
-          then
-            echo "Incoming PR produced a Docker image"
-            echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
-
-            suffix="actual"
-          fi
-
-          echo "NEW_TAG=sha-${{ github.sha }}-${suffix}" >> ${GITHUB_ENV}
-
-      - name: Find the container to which we'll apply our new tag
-        if: ${{ env.OLD_TAG == '' }}
-        env:
-          SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
-        shell: bash
-        run: |
-
-          # this step gets executed if we have a PR that didn't build a container (env.OLD_TAG empty)
-          # or always in the case of an incoming tag
-          old_tag=$(cat existing_tags | grep "^sha-${SHA}-.*\$")
-
-          echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
-
-      - name: New tag for tags
-        if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
-        shell: bash
-        run: |
-          # tags: |
-          #   # output 0.1.2
-          #   type=semver,pattern=v{{version}}
-          #   # output 0.1
-          #   type=semver,pattern=v{{major}}.{{minor}}
-          #   # disabled if major zero
-          #   type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-
-          # the new docker tag, for incoming tags
-          echo "NEW_TAG=${{ github.ref_name }}" >> ${GITHUB_ENV}
-
-      - name: Actually re-tag the container
-        shell: bash
-        run: |
-
-          echo "tag \"${FULL_IMAGE_NAME}:${OLD_TAG}\" ${NEW_TAG}"
 
           docker run \
             --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
             --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
             --rm \
             gcr.io/go-containerregistry/crane:latest \
-            tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${NEW_TAG}
+            ls ${FULL_IMAGE_NAME} >> existing_tags
+
+      - name: Check if the incoming PR has a Docker container, which will be our old tag
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PR_TAG: "pr-${{ github.event.number }}-latest"
+        shell: bash
+        run: |
+          # search for the tag, there can only be zero or one match
+          # we need the || true because otherwise grep returns exit code 1 and github actions then dies
+          pr_tag_found=$(cat existing_tags | grep -c "^${PR_TAG}\$") || true
+
+          if [ $pr_tag_found -eq 1 ]
+          then
+            echo "Incoming PR produced a Docker image"
+            echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
+          fi
+
+      - name: In all other circumstances, the old tag either from the current sha (we're tagging) or the base sha (we're merging in a PR that did not produce a docker contaienr)
+        if: ${{ env.OLD_TAG == '' }}
+        env:
+          # forgive me programming gods
+          SHA: ${{ fromJSON(format('["{0}", "{1}"]', github.sha, github.event.pull_request.base.sha))[github.event_name == 'pull_request'] }}
+        shell: bash
+        run: |
+          old_tag=$(cat existing_tags | grep "^sha-${SHA}-.*\$") # .* is actual or retag
+
+          echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
+
+      - name: Set the new TAGs
+        id: meta
+        uses: docker/metadata-action@v3
+        env:
+          SUFFIX: ${{ fromJSON(format('["{0}", "{1}"]', 'actual', 'retag'))[env.PR_TAG == ''] }}
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=sha,format=long,prefix=sha-,suffix=${{ env.SUFFIX }},enable=${{ github.event_name == 'pull_request' }}
+
+      - name: Actually re-tag the container
+        shell: bash
+        run: |
+          echo "${{ steps.meta.outputs.tags }}" | while read new_tag
+          do
+            docker run \
+              --env DOCKER_CONFIG=${CRANE_DOCKER_CONFIG_LOCATION} \
+              --mount "${CRANE_DOCKER_CONFIG_VOLUME_MOUNT}" \
+              --rm \
+              gcr.io/go-containerregistry/crane:latest \
+              tag "${FULL_IMAGE_NAME}:${OLD_TAG}" ${new_tag}
+          done
 
       - name: Cleanup!
         if: ${{ always() }}
         shell: bash
         run: |
           docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
-
