@@ -48,8 +48,6 @@ jobs:
             echo $line
           done
 
-
-
   # changes:
   #   name: Detect changes
   #   runs-on: ubuntu-latest

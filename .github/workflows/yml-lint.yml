@@ -10,12 +10,12 @@ on:
     branches:
       - main
     paths:
-      - '**/*.yml'
-      - '**/*.yaml'
+      - "**/*.yml"
+      - "**/*.yaml"
   pull_request:
     paths:
-      - '**/*.yml'
-      - '**/*.yaml'
+      - "**/*.yml"
+      - "**/*.yaml"
 
 jobs:
   lint:

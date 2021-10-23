@@ -143,4 +143,3 @@ jobs:
         shell: bash
         run: |
           docker volume rm ${{ env.CRANE_DOCKER_CONFIG_VOLUME }}
-
