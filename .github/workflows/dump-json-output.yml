@@ -81,10 +81,23 @@ jobs:
 
           echo $asArray
 
-          echo "::set-output name=tags::${asArray}"
+          echo "::set-output name=tags::fromJSON(${asArray})"
 
-      - name: Dump tags
-        shell: bash
+      - shell: bash
         run: |
 
           echo "${{ steps.find-existing-tags.outputs.tags }}"
+
+
+      - name: Contains PR-31
+        shell: bash
+        if: ${{ contains(steps.find-existing-tags.outputs.tags, "pr-31") }}
+        run: |
+
+          echo "Should print"
+
+      - shell: bash
+        if: ${{ contains(steps.find-existing-tags.outputs.tags, "pr-fllllllllll31") }}
+        run: |
+
+          echo "Shouldn't print"
