@@ -117,7 +117,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         env:
-          SUFFIX: ${{ fromJSON(format('["{0}", "{1}"]', 'actual', 'retag'))[env.PR_TAG == ''] }}
+          SUFFIX: ${{ fromJSON(format('["{0}", "{1}"]', 'actual', 'retag'))[env.OLD_TAG == ''] }}
         with:
           images: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           tags: |
