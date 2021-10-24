@@ -10,8 +10,8 @@ on:
   # Triggers the workflow pushes to main, which by disabling pushes to `main` in GitHub should only be PR merges
   push:
     branches: [main]
-    tags:
-      - "v**"
+    # tags:
+    #   - "v**"
   # note how we're not doing
   # pull_request_target, as it isn't what we need.
   # we need the push event to make it show up nicely in the UI
@@ -26,7 +26,7 @@ on:
   # workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
