@@ -1,6 +1,8 @@
 ---
-overrides:
-  - files:
-      - "**/*.{yml,yaml}"
-    options:
-      singleQuote: false
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - - "@semantic-release-plus/docker"
+    - name: "kristof-mattei/rust-integrity-playground"
+      registry: "ghcr.io"
+  - "@semantic-release/github"
