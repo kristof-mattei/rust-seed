@@ -6,3 +6,6 @@ plugins:
     - name: "kristof-mattei/rust-integrity-playground"
       registry: "ghcr.io"
   - "@semantic-release/github"
+branches:
+  - name: main
+    # prerelease: true
