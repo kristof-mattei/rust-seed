@@ -24,7 +24,9 @@ permissions:
 
 jobs:
   should-workflow-run:
-    if: ${{ github.ref_type == 'tag' || github.event.pull_request.merged == true }}
+    if: ${{ github.event.pull_request.merged == true }}
+    # not ready to give up on tagging the builds in a certain way
+    # if: ${{ github.ref_type == 'tag' || github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     steps:
       - run: |

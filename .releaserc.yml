@@ -5,6 +5,7 @@ plugins:
   - - "@semantic-release-plus/docker"
     - name: "kristof-mattei/rust-integrity-playground"
       registry: "ghcr.io"
+      skipLogin: true
   - "@semantic-release/github"
 branches:
   - name: main
