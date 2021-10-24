@@ -117,7 +117,7 @@ jobs:
           echo "These are the existing tags on ${FULL_IMAGE_NAME}:"
           cat existing_tags
 
-      - name: Check if the incoming PR has a Docker container, which will be our old tag
+      - name: Check if the incoming PR has a Docker container, which will be our old tag, if not, or if it's just a push, find the appropriate old tag
         env:
           PR_TAG: "pr-${{ github.event.before }}-${{ env.INCOMING_PR_HEAD_COMMIT }}"
         shell: bash
@@ -136,7 +136,7 @@ jobs:
             # If we don't have an old tag, then the incoming PR didn't produce a container.
             # In which case we're going to find the container referenced to the base commit, and add our current sha as a tag to it
 
-            echo "Incoming PR produced nothing"
+            echo "Incoming PR produced nothing, or there was just a push to main"
 
             # so we find the last commit that github processed before this one
             # which will have gone through the same retagging process
