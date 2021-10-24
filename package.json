@@ -1,14 +1,15 @@
 {
   "name": "rust-integrity-playground",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "It's written in Rust!",
   "main": "index.js",
   "scripts": {
-    "prettier": "prettier -w \"**/*.{yml,yaml}\""
+    "prettier": "prettier -w \"**/*.{yml,yaml}\"",
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kristof-Mattei/rust-integrity-playground.git"
+    "url": "https://github.com/Kristof-Mattei/rust-integrity-playground.git"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +18,12 @@
   },
   "homepage": "https://github.com/Kristof-Mattei/rust-integrity-playground#readme",
   "devDependencies": {
-    "prettier": "^2.4.1"
+    "prettier": "^2.4.1",
+    "@semantic-release-plus/docker": "^3.0.1",
+    "semantic-release-plus": "^19.0.0",
+    "semantic-release": "^18.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
