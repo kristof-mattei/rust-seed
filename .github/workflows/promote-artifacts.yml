@@ -47,7 +47,7 @@ jobs:
           incoming_pr_head_commit=$(git rev-parse HEAD^2)
           echo "The head of the incoming PR is ${incoming_pr_head_commit}"
           echo "The base of the incoming PR is ${{ github.event.before }} (from GitHub)"
-          echo "The base of the incoming PR is ${{ git rev-parse HEAD^ }} (from rev-parse)"
+          echo "The base of the incoming PR is $(git rev-parse HEAD^) (from rev-parse)"
           echo "INCOMING_PR_HEAD_COMMIT=${incoming_pr_head_commit} >> ${GITHUB_ENV}
 
       - name: Set up Crane volume and define env variables
