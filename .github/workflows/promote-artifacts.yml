@@ -160,19 +160,6 @@ jobs:
               cp "${FULL_IMAGE_NAME}:${OLD_TAG}" ${new_tag}
           done
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "lts/*"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
-
       - name: Cleanup!
         if: ${{ always() }}
         shell: bash
