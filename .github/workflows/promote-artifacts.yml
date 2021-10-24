@@ -27,14 +27,14 @@ jobs:
     if: ${{ github.ref_type == "tag" || github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     steps:
-    - run: |
-        echo "I'm a giraffe!"
+      - run: |
+          echo "I'm a giraffe!"
 
   retag-containers:
     name: Retag the containers
     runs-on: ubuntu-latest
     needs:
-     - should-workflow-run
+      - should-workflow-run
     steps:
       - name: Set up Crane volume and define env variables
         shell: bash

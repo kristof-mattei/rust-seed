@@ -18,5 +18,8 @@
   "homepage": "https://github.com/Kristof-Mattei/rust-integrity-playground#readme",
   "devDependencies": {
     "prettier": "^2.4.1"
+  },
+  "dependencies": {
+    "semantic-release": "^18.0.0"
   }
 }
