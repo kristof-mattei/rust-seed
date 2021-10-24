@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   should-workflow-run:
-    if: ${{ github.ref_type == "tag" || github.event.pull_request.merged == true }}
+    if: ${{ github.ref_type == 'tag' || github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -147,6 +147,19 @@ jobs:
               gcr.io/go-containerregistry/crane:latest \
               cp "${FULL_IMAGE_NAME}:${OLD_TAG}" ${new_tag}
           done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
 
       - name: Cleanup!
         if: ${{ always() }}
