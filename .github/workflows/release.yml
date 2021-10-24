@@ -21,8 +21,17 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      - name: Only on main
+        if: ${{ github.ref == 'refs/heads/main' }}
+        shell: bash
+        run: |
+          echo "Only to be executed on main"
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v2
