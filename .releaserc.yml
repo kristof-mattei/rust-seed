@@ -3,10 +3,6 @@ plugins:
   - - "@semantic-release/commit-analyzer"
     - preset: conventionalcommits
   - "@semantic-release/release-notes-generator"
-  - - "@semantic-release-plus/docker"
-    - name: "kristof-mattei/rust-integrity-playground"
-      registry: "ghcr.io"
-      skipLogin: true
   - "@semantic-release/github"
 branches:
   - name: main
