@@ -256,7 +256,6 @@ jobs:
     #   - cargo-fmt
     #   - cargo-test-and-report
     #   - cargo-clippy-and-report
-    if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -282,9 +281,9 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # This is unsafe, what if an older build finishes later?
+          # Should another build finish later. That's why we put the concurrency in place.
           tags: |
-            # This is unsafe, what if an older build finishes later?
-            # Should another build finish later. That's why we put the concurrency in place.
             type=ref,event=pr,suffix=-latest
             type=ref,event=pr,suffix=-run-id-${{ github.run_id }}
             type=ref,event=pr,suffix=-run-number-${{ github.run_number }}
