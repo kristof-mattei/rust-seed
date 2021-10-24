@@ -6,6 +6,9 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.before }}"
+
 on:
   # Triggers the workflow pushes to main. They can be either direct pushes, or PRs being merged
   push:
