@@ -18,10 +18,11 @@
   },
   "homepage": "https://github.com/Kristof-Mattei/rust-integrity-playground#readme",
   "devDependencies": {
-    "prettier": "^2.4.1",
     "@semantic-release-plus/docker": "^3.0.1",
-    "semantic-release-plus": "^19.0.0",
-    "semantic-release": "^18.0.0"
+    "conventional-changelog-conventionalcommits": "^4.6.1",
+    "prettier": "^2.4.1",
+    "semantic-release": "^18.0.0",
+    "semantic-release-plus": "^19.0.0"
   },
   "publishConfig": {
     "access": "restricted"
