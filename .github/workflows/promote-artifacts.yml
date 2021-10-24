@@ -38,6 +38,10 @@ jobs:
     needs:
       - should-workflow-run
     steps:
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Set up Crane volume and define env variables
         shell: bash
         run: |
