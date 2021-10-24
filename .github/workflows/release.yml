@@ -15,7 +15,6 @@ permissions:
   issues: write
   pull-requests: read
 
-
 jobs:
   retag-containers:
     name: Retag the containers
