@@ -37,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          fetch-depth: 1
+          fetch-depth: 2
 
       - name: Find out the SHA of the tip of the incoming PR
         shell: bash
