@@ -48,7 +48,6 @@ jobs:
           echo "The base of the incoming PR is ${{ git rev-parse HEAD^ }} (from rev-parse)"
           echo "INCOMING_PR_HEAD_COMMIT=${incoming_pr_head_commit} >> ${GITHUB_ENV}
 
-
       - name: Set up Crane volume and define env variables
         shell: bash
         run: |
@@ -140,7 +139,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          images:
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
             # type=semver,pattern=v{{version}}
             # type=semver,pattern=v{{major}}.{{minor}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.0.') }}
             # type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
