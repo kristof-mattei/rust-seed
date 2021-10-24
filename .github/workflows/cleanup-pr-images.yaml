@@ -1,4 +1,4 @@
-name: PR
+name: Cleanup PR closed, merged images
 
 on:
   pull_request_target:

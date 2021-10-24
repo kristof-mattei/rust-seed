@@ -82,7 +82,7 @@ jobs:
       - name: Check if the incoming PR has a Docker container, which will be our old tag
         shell: bash
         run: |
-          old_tag=$(cat existing_tags | grep "^sha-${{ github.event.before }}-.*\$") # .* is actual or retag
+          old_tag=$(cat existing_tags | grep "^sha-${{ github.sha }}-.*\$") # .* is actual or retag
 
           echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
