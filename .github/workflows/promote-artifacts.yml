@@ -9,10 +9,8 @@ env:
 # Controls when the workflow will run
 on:
   # Triggers the workflow pushes to main, which by control in GitHub should only be PR merges
-  pull_request:
-    branches: [main]
-    types: [closed]
   push:
+    branches: [main]
     tags:
       - "v**"
 
