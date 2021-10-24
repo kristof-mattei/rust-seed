@@ -41,7 +41,6 @@ jobs:
         # with:
         #   fetch-depth: 1
 
-
       - name: Find out the SHA of the tip of the incoming PR
         shell: bash
         run: |
