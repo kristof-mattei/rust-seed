@@ -22,9 +22,6 @@ on:
   # when with git rev-parse HEAD^2 we can find the incoming PR's head
   # Problem solved
 
-  # We may want this to explicitly cut a release?
-  # workflow_dispatch:
-
 permissions:
   contents: write
   packages: write

@@ -4,6 +4,10 @@ plugins:
     - preset: conventionalcommits
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/github"
+  - - "@semantic-release/exec"
+    - cmd: |
+        "echo \"${nextRelease.major} ${nextRelease.minor} ${nextRelease.patch}\" > foo"
+
 branches:
   - name: main
     # prerelease: true

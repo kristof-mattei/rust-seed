@@ -1,4 +1,4 @@
-name: Tag containers
+name: Release
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -8,16 +8,17 @@ env:
 
 on:
   workflow_dispatch: # releasing is manual as we don't want to release every time
+    branches: [main]
 
 permissions:
   contents: write # to write tags
   packages: write # to write tags to docker containers
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
-  retag-containers:
-    name: Retag the containers
+  release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
