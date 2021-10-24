@@ -111,7 +111,7 @@ jobs:
 
       - name: Check if the incoming PR has a Docker container, which will be our old tag
         env:
-          PR_TAG: "pr-${{ github.event.before }}-with-${{ env.INCOMING_PR_HEAD_COMMIT }}"
+          PR_TAG: "pr-${{ github.event.before }}-${{ env.INCOMING_PR_HEAD_COMMIT }}"
         shell: bash
         run: |
           # search for the tag, there can only be zero or one match
@@ -121,21 +121,20 @@ jobs:
           if [ $pr_tag_found -eq 1 ]
           then
             echo "Incoming PR produced a Docker image"
+
             echo "OLD_TAG=${PR_TAG}" >> ${GITHUB_ENV}
             echo "SUFFIX=actual" >> ${GITHUB_ENV}
           else
+            # If we don't have an old tag, then the incoming PR didn't produce a container.
+            # In which case we're going to find the container referenced to the base commit, and add our current sha as a tag to it
+
+            echo "Incoming PR produced nothing"
+
+            old_tag=$(cat existing_tags | grep "^sha-${{ github.event.before }}-.*\$") # .* is actual or retag
+
+            echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
             echo "SUFFIX=retag" >> ${GITHUB_ENV}
           fi
-
-      - name: Find the old tag if the PR didn't produce a container.
-        # If we don't have an old tag, then the incoming PR didn't produce a container.
-        # In which case we're going to find the container referenced to the base commit, and add our current sha as a tag to it
-        if: ${{ env.OLD_TAG == '' }}
-        shell: bash
-        run: |
-          old_tag=$(cat existing_tags | grep "^sha-${{ github.event.before }}-.*\$") # .* is actual or retag
-
-          echo "OLD_TAG=${old_tag}" >> ${GITHUB_ENV}
 
       - name: Set the new TAGs
         id: meta
