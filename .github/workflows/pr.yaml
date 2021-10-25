@@ -61,7 +61,7 @@ jobs:
         uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
         with:
           profile: minimal
-          toolchain: 1.55
+          toolchain: 1.56.0
           override: true
 
       - name: Cache dependencies
@@ -104,7 +104,7 @@ jobs:
         uses: ./.github/actions/actions-rs/toolchain # since this is a submodule, it depends on which version is pinned
         with:
           profile: minimal
-          toolchain: 1.55
+          toolchain: 1.56.0
           override: true
           components: rustfmt
 
@@ -214,7 +214,7 @@ jobs:
         uses: ./.github/actions/actions-rs/toolchain
         with:
           profile: minimal
-          toolchain: 1.55
+          toolchain: 1.56.0
           override: true
           components: clippy
 

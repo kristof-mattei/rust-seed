@@ -1,8 +1,8 @@
 [package]
 name = "rust-integrity-playground"
 version = "0.1.2"
-edition = "2018"
-rust-version = "1.55"
+edition = "2021"
+rust-version = "1.56.0"
 authors = ["Kristof Mattei"]
 description = "Rust integrity playground"
 
