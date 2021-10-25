@@ -2,6 +2,7 @@
 name = "rust-integrity-playground"
 version = "0.1.2"
 edition = "2018"
+rust-version = "1.55"
 authors = ["Kristof Mattei"]
 description = "Rust integrity playground"
 
@@ -9,11 +10,6 @@ description = "Rust integrity playground"
 
 [features]
 coverage = []
-
-[dev-dependencies.cargo-husky]
-version = "1.5.0"
-default-features = false # Disable features which are enabled by default
-features = ["prepush-hook", "run-for-all", "run-cargo-test", "run-cargo-clippy", "run-cargo-fmt"]
 
 [dependencies]
 # reqwest = { version = "0.11.5", features = ["json"] }
