@@ -1,7 +1,8 @@
 name: Cleanup PR closed, merged images
 
 on:
-  pull_request_target:
+  pull_request:
+    types: [closed]
     branches:
       - main
 

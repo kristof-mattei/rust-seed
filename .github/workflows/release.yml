@@ -36,7 +36,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: "lts/*"
+          node-version: "lts/16"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          CACHE_NAME: npm-cache-dependencies
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-${{ env.CACHE_NAME }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.CACHE_NAME }}-
 
       - name: Install dependencies
         shell: bash
@@ -48,4 +58,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
         shell: bash
         run: |
-          npx semantic-release-plus
+          npx --no-install semantic-release-plus
