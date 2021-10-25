@@ -31,7 +31,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/build/rust-integrity-playground/target \
     cargo install --path . --target ${TARGET} --root /output
 
-FROM alpine:3.14
+FROM alpine:3.14.2
 WORKDIR /app
 COPY --from=builder /output/bin/rust-integrity-playground /app
 ENTRYPOINT ["/app/rust-integrity-playground"]
