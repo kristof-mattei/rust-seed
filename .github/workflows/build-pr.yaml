@@ -117,19 +117,14 @@ jobs:
           CACHE_NAME: cargo-cache-dependencies
         with:
           path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
+            ~/.cargo/
+            ./target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargobuild
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
-      - name: Build
+      - name: Cargo build
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
         with:
           command: build
@@ -159,19 +154,14 @@ jobs:
           CACHE_NAME: cargo-cache-dependencies
         with:
           path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
+            ~/.cargo/
+            ./target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargofmt
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
-      - name: Fmt
+      - name: Cargo fmt
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
         with:
           command: fmt
@@ -200,13 +190,8 @@ jobs:
           CACHE_NAME: cargo-cache-dependencies
         with:
           path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
+            ~/.cargo/
+            ./target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargotest
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
@@ -228,7 +213,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
 
-      - name: Download tarpulin tar, extract, and add folder to path.
+      - name: Download tarpulin tar, extract, and add folder to path
         uses: actions/github-script@441359b1a30438de65712c2fbca0abe4816fa667
         with:
           script: |
@@ -297,19 +282,14 @@ jobs:
           CACHE_NAME: cargo-cache-dependencies
         with:
           path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target
+            ~/.cargo/
+            ./target
           key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargoclippy
           restore-keys: |
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
 
-      - name: Clippy
+      - name: Cargo clippy
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
         with:
           command: clippy
@@ -428,6 +408,7 @@ jobs:
 
   # human
   after-all:
+    name: Final step
     # this is the job that should be marked as required on GitHub. It's the only one that'll reliably trigger
     # when any upstream fails: success
     # when all upstream skips: pass
