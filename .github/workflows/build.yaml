@@ -226,7 +226,7 @@ jobs:
 
       - name: Run tarpaulin
         run: |
-          cargo tarpaulin --run-types AllTargets --output-dir reports --out Lcov --workspace --no-fail-fast --all-features -- -Z unstable-options --format json --report-time | cargo2junit > reports/result.xml;
+          cargo tarpaulin --run-types AllTargets --output-dir reports --out json --workspace --no-fail-fast --all-features -- -Z unstable-options --format json --report-time | cargo2junit > reports/test-report.xml;
         continue-on-error: true
 
       - name: Upload test results
@@ -234,21 +234,28 @@ jobs:
         with:
           check_name: Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          files: reports/result.xml
+          files: reports/test-report.xml
+
+      - name: Upload tarpaulin report
+        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        with:
+          name: tarpaulin-report
+          path: |
+            reports/tarpaulin-report.json
 
       - name: Upload to CodeCov
         uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
         with:
           # # required for private repositories:
           # token: ${{ secrets.CODECOV_TOKEN }}
-          directory: reports
+          files: reports/tarpaulin-report.json
           fail_ci_if_error: true
 
-      - name: Upload to Coveralls
-        uses: coverallsapp/github-action@1.1.3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: reports/lcov.info
+      # - name: Upload to Coveralls
+      #   uses: coverallsapp/github-action@1.1.3
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     path-to-lcov: reports/lcov.info
 
   cargo-clippy-and-report:
     name: Cargo clippy (and report)
@@ -256,7 +263,7 @@ jobs:
     needs:
       - changes
     if: |
-      (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true')
+      (needs.changes.outputs.code == 'true')
     steps:
       - name: Checkout
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
@@ -283,11 +290,87 @@ jobs:
 
           cargo --version
 
-      - uses: actions-rs/clippy-check@b5b5f21f4797c02da247df37026fcd0a5024aa4d
+      - name: Run Clippy for sonar report
+        run: |
+          cargo clippy --workspace --all-targets --all-features --message-format=json -- --deny clippy::all --warn clippy::pedantic --warn clippy::cargo > reports/clippy-report.json;
+        continue-on-error: true
+
+      - name: Run Clippy for GitHub Actions report.
+        uses: actions-rs/clippy-check@b5b5f21f4797c02da247df37026fcd0a5024aa4d
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --workspace --all-targets --all-features -- --deny clippy::all --warn clippy::pedantic --warn clippy::cargo
           name: Clippy report
+
+      - name: Upload clippy report
+        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        with:
+          name: clippy-report
+          path: |
+            reports/clippy-report.json
+
+  cargo-sonar:
+    name: Cargo sonar
+    runs-on: ubuntu-latest
+    needs:
+      - cargo-test-and-report
+      - cargo-clippy-and-report
+    if: |
+      (needs.changes.outputs.code == 'true')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0 # for sonarcube analysis against 'main'
+
+      - name: Cache dependencies
+        uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        env:
+          CACHE_NAME: cargo-cache-dependencies
+        with:
+          path: |
+            ~/.cargo
+            ./target
+          key: ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-clippy
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-build-${{ env.CACHE_NAME }}-
+
+      - name: Set up toolchain
+        shell: bash
+        run: |
+          rm ${HOME}/.cargo/bin/rustfmt
+          rm ${HOME}/.cargo/bin/cargo-fmt
+          rustup update
+
+          cargo --version
+
+      - name: Install cargo-sonar for converting Clippy report into Sonar report
+        run: |
+          cargo install --locked cargo-sonar;
+
+      - name: Download Clippy report
+        uses: actions/download-artifact@3be87be14a055c47b01d3bd88f8fe02320a9bb60
+        with:
+          name: clippy-report
+          path: reports
+
+      - name: Download Tarpaulin report
+        uses: actions/download-artifact@3be87be14a055c47b01d3bd88f8fe02320a9bb60
+        with:
+          name: tarpaulin-report
+          path: reports
+
+      - name: Convert Clippy & Tarpaulin report to sonar format
+        run: |
+          cargo-sonar --coverage tarpaulin --issues clippy --clippy-path reports/clippy-report.json --tarpaulin-path reports/tarpaulin-report.json
+
+      - name: Run Sonar
+        uses: sonarsource/sonarqube-scan-action@069e3332cbefb8659c02d77b21a04719d3ef7c9b
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   docker-build:
     name: Build Docker container
@@ -330,6 +413,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase the image name
+        shell: bash
+        run: |
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
       - name: Build Docker image
         uses: docker/build-push-action@1814d3dfb36d6f84174e61f4a4b05bd84089a4b9
         with:
@@ -356,6 +444,7 @@ jobs:
       - cargo-fmt
       - cargo-test-and-report
       - cargo-clippy-and-report
+      - cargo-sonar
       - docker-build
     if: ${{ github.repository == 'kristof-mattei/rust-end-to-end-application' && github.event_name == 'pull_request' }}
     steps:
@@ -397,6 +486,7 @@ jobs:
       - cargo-fmt
       - cargo-clippy-and-report
       - cargo-test-and-report
+      - cargo-sonar
       - docker-build
       - docker-publish
     if: ${{ !failure() && !cancelled() }}
