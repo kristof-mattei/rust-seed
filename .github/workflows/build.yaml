@@ -234,6 +234,7 @@ jobs:
         with:
           check_name: Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          root_log_level: DEBUG
           files: reports/result.xml
 
       - name: Upload to CodeCov
