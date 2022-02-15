@@ -11,3 +11,10 @@ fn assert_world_ok2() {
     let cls2 = || false;
     assert_eq!(cls1(), cls2());
 }
+
+#[test]
+fn assert_world_ok3() {
+    let cls1 = || false;
+    let cls2 = || true;
+    assert_eq!(cls1(), cls2());
+}
