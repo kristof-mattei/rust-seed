@@ -35,6 +35,10 @@ fn quz() -> &'static str {
     "Quz"
 }
 
+fn never() -> () {
+    println!("But I'm never called :'(");
+}
+
 // async fn something_to_await(_: PathBuf) {
 //     println!("{}", foo());
 //     println!("{}", bar());
