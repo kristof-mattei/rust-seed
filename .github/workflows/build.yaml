@@ -240,7 +240,7 @@ jobs:
 
       - name: Run nextest
         shell: bash
-        id: test
+        id: tests
         env:
           RUSTC_BOOTSTRAP: 1
           RUSTFLAGS: "-Zinstrument-coverage"
