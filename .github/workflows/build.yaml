@@ -248,7 +248,6 @@ jobs:
           LLVM_PROFILE_FILE: "profiling/profile-%p-%m.profraw"
         run: |
           cargo nextest run --profile ci --no-fail-fast --all-targets --workspace
-          echo "TEST_FAILED=$?" >> ${GITHUB_ENV}
         continue-on-error: true
 
       - name: Upload test results
@@ -294,13 +293,14 @@ jobs:
 
       - name: Fail if tests failed
         shell: bash
+        if: steps.tests.outcome != 'success'
         run: |
           # the test reporter we use (or any for that matter)
           # all show a report. But we cannot depend on that report because
           # we don't know which subsection it belongs in GitHub
           # so we explicitly fail this one
           # which will fail All Done
-          exit ${TEST_FAILED}
+          exit 1;
 
   cargo-clippy-and-report:
     name: Cargo clippy (and report)
