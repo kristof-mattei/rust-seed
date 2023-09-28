@@ -280,15 +280,11 @@ jobs:
 
           mv ./cargo-binstall ~/.cargo/bin/
 
-      - name: Install nextest, custom test runner, with native support for junit
-        shell: bash
-        run: |
-          cargo binstall --no-confirm cargo-nextest;
-
-      - name: Install nextest, custom test runner, with native support for junit
+      - name: Install nextest, custom test runner, with native support for junit and cargo-llvm-cov for coverage reporting
         shell: bash
         run: |
           cargo binstall --no-confirm cargo-llvm-cov;
+          # cargo binstall --no-confirm cargo-nextest cargo-llvm-cov;
 
       - name: Run tests with coverage
         shell: bash
