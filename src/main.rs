@@ -6,6 +6,7 @@
 #![deny(let_underscore_drop)]
 #![deny(non_ascii_idents)]
 #![allow(clippy::uninlined_format_args)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 // use std::path::PathBuf;
 
