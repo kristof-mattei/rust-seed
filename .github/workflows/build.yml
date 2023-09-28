@@ -288,7 +288,7 @@ jobs:
       - name: Install nextest, custom test runner, with native support for junit
         shell: bash
         run: |
-          cargo binstall --no-confirm cargo llvm-cov;
+          cargo binstall --no-confirm cargo-llvm-cov;
 
       - name: Run tests with coverage
         shell: bash
