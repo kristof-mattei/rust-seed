@@ -294,7 +294,7 @@ jobs:
         shell: bash
         id: tests
         run: |
-          cargo llvm-cov nextest --profile ci --no-fail-fast --all-targets --workspace --lcov --output-path reports/lcov.info
+          cargo llvm-cov nextest --profile ci --no-fail-fast --all-targets --all-features --workspace --lcov --output-path reports/lcov.info
         continue-on-error: true
 
       - name: Upload test results
