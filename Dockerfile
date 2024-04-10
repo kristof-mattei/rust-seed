@@ -13,6 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
     apt-get update && \
     apt-get --no-install-recommends install -y \
     build-essential \
+    gcc-aarch64-linux-gnu \
     musl-dev \
     musl-tools
 
@@ -25,6 +26,7 @@ RUN cargo new ${APPLICATION_NAME}
 WORKDIR /build/${APPLICATION_NAME}
 COPY .cargo ./.cargo
 COPY Cargo.toml Cargo.lock ./
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/aarch64-linux-gnu-gcc
 RUN --mount=type=cache,id=cargo-dependencies,target=/build/${APPLICATION_NAME}/target \
     cargo build --release --target ${TARGET}
 
