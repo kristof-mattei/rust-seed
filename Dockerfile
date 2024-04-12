@@ -1,4 +1,4 @@
-FROM rust:1.77.2@sha256:bfc490ab6aaaeb31892209f87b00df337627319209da00d582fb27bcb02df166 as builder
+FROM --platform=$BUILDPLATFORM rust:1.77.1@sha256:e3d323070420270149fe65054f65bf680d7ddb3d66008a0549e6afe6b320c8eb as builder
 
 ARG TARGET=x86_64-unknown-linux-musl
 ARG APPLICATION_NAME
@@ -10,12 +10,14 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloa
 # borrowed (Ba Dum Tss!) from
 # https://github.com/pablodeymo/rust-musl-builder/blob/7a7ea3e909b1ef00c177d9eeac32d8c9d7d6a08c/Dockerfile#L48-L49
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
+    dpkg --add-architecture arm64 && \
     apt-get update && \
     apt-get --no-install-recommends install -y \
     build-essential \
     gcc-aarch64-linux-gnu \
     musl-dev \
-    musl-tools
+    musl-tools \
+    gcc-aarch64-linux-gnu
 
 # The following block
 # creates an empty app, and we copy in Cargo.toml and Cargo.lock as they represent our dependencies
