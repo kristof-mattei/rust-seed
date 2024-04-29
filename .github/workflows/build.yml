@@ -69,15 +69,8 @@ jobs:
   calculate-version:
     name: Calculate version
     runs-on: ubuntu-latest
-    needs:
-      - changes
-      - repo-has-container
     outputs:
       version: ${{ steps.version.outputs.next_version }}
-    if: |
-      github.event_name == 'pull_request' &&
-      fromJSON(needs.repo-has-container.outputs.has_container) == true &&
-      fromJSON(needs.changes.outputs.code) == true
     steps:
       - name: Checkout
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -245,6 +238,8 @@ jobs:
   cargo-test-and-report:
     name: Cargo test (and report)
     runs-on: ubuntu-latest
+    needs:
+      - calculate-version
     steps:
       - name: Checkout
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -340,6 +335,7 @@ jobs:
           fail_ci_if_error: true
           file: reports/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
+          version: ${{ needs.calculate-version.outputs.version }}
 
       - name: Fail if tests failed
         shell: bash
