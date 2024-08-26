@@ -1,26 +1,3 @@
-// use std::path::PathBuf;
-
-// use env_logger::Env;
-// use futures::{stream::FuturesUnordered, StreamExt};
-// use log::info;
-
-// use structopt::StructOpt;
-
-// #[derive(Debug, StructOpt)]
-// #[structopt(
-//     // name, // from Cargo.toml,
-//     about, // needed otherwise it doesn't show description from Cargo.toml,
-//     author // needed otherwise it doesn't show author from Cargo.toml
-// )]
-// struct Opt {
-//     #[structopt(
-//         // verbatim_doc_comment,
-//         help = "Some help",
-//         parse(from_os_str)
-//     )]
-//     some_value: PathBuf,
-// }
-
 fn foo() -> &'static str {
     "Foo"
 }
@@ -35,13 +12,23 @@ fn quz() -> &'static str {
 
 fn main() -> Result<(), color_eyre::Report> {
     color_eyre::install()?;
-
     println!("{}", foo());
     println!("{}", bar());
     println!("{}", quz());
 
+    let héllo = "accent?";
+    println!("{}", héllo);
+
+    let foo = "foo";
+    let bar = "bar";
+
+    let outer = format!("{foo} {}", bar);
+    println!("{}", outer);
+
     todo!("TODO");
 }
+
+fn i_am_dead() {}
 
 #[cfg(test)]
 mod tests {
