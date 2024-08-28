@@ -397,7 +397,7 @@ jobs:
           cargo --version
 
       - name: Run Clippy for GitHub Actions report
-        uses: actions-rs-plus/clippy-check@modern-eslint
+        uses: actions-rs-plus/clippy-check@main
         with:
           args: --workspace --all-targets --all-features --no-deps
 
