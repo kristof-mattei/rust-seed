@@ -14,5 +14,5 @@ fn assert_world_ok2() {
 
 #[test]
 fn a_plus_b() {
-    assert_eq!(rust_end_to_end_application::add(1, 2), 3);
+    assert_eq!(rust_seed::add(1, 2), 3);
 }
