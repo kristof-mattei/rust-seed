@@ -1,36 +1,22 @@
-FROM --platform=${BUILDPLATFORM} rust:1.87.0@sha256:5e33ae75f40bf25854fa86e33487f47075016d16726355a72171f67362ad6bf7 AS rust-base
+FROM --platform=${BUILDPLATFORM} rust:1.87.0-alpine AS rust-base
 
 ARG APPLICATION_NAME
 
-RUN rm -f /etc/apt/apt.conf.d/docker-clean \
-    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-
-# borrowed (Ba Dum Tss!) from
-# https://github.com/pablodeymo/rust-musl-builder/blob/7a7ea3e909b1ef00c177d9eeac32d8c9d7d6a08c/Dockerfile#L48-L49
-RUN --mount=type=cache,id=apt-cache-amd64,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lib-amd64,target=/var/lib/apt,sharing=locked \
-    apt-get update \
-    && apt-get --no-install-recommends install --yes \
-        build-essential \
-        musl-dev \
-        musl-tools
+# note that we don't do `--no-cache`. We want to keep the caches, as we do multi-stage build
+RUN apk update && apk add make clang llvm perl
 
 FROM rust-base AS rust-linux-amd64
 ARG TARGET=x86_64-unknown-linux-musl
 
 FROM rust-base AS rust-linux-arm64
 ARG TARGET=aarch64-unknown-linux-musl
-RUN --mount=type=cache,id=apt-cache-arm64,from=rust-base,source=/var/cache/apt,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lib-arm64,from=rust-base,source=/var/lib/apt,target=/var/lib/apt,sharing=locked \
-    dpkg --add-architecture arm64 \
-    && apt-get update \
-    && apt-get --no-install-recommends install --yes \
-        libc6-dev-arm64-cross \
-        gcc-aarch64-linux-gnu
+
+ENV CC_aarch64_unknown_linux_musl="clang"
+ENV AR_aarch64_unknown_linux_musl="llvm-ar"
 
 FROM rust-${TARGETPLATFORM//\//-} AS rust-cargo-build
 
-RUN rustup target add ${TARGET} && rustup component add clippy rustfmt
+RUN rustup target add ${TARGET}
 
 # The following block
 # creates an empty app, and we copy in Cargo.toml and Cargo.lock as they represent our dependencies
@@ -63,7 +49,7 @@ RUN --mount=type=cache,target=/build/${APPLICATION_NAME}/target \
     --mount=type=cache,id=cargo-registery,target=/usr/local/cargo/registry/,sharing=locked \
     cargo install --path . --target ${TARGET} --root /output
 
-FROM alpine:3.21.3@sha256:a8560b36e8b8210634f77d9f7f9efd7ffa463e380b75e2e74aff4511df3ef88c AS passwd-build
+FROM --platform=${BUILDPLATFORM} alpine:3.21.3@sha256:a8560b36e8b8210634f77d9f7f9efd7ffa463e380b75e2e74aff4511df3ef88c AS passwd-build
 
 # setting `--system` prevents prompting for a password
 RUN addgroup --gid 900 appgroup \

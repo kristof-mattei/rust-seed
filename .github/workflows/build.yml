@@ -296,10 +296,10 @@ jobs:
 
           cargo --version
 
-      - name: Install llvm-tools-preview
+      - name: Install llvm-tools
         shell: bash
         run: |
-          rustup component add llvm-tools-preview
+          rustup component add llvm-tools
 
           # restore symlinks
           rustup update
