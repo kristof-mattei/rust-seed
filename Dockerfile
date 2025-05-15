@@ -1,32 +1,15 @@
-FROM --platform=${BUILDPLATFORM} rust:1.87.0@sha256:f6bf5bf8df770d29dc2cb6c8504f93cb22c18661ec40b51de4008bef9797ae40 AS rust-base
+FROM --platform=${BUILDPLATFORM} rust:1.87.0-alpine AS rust-base
 
 ARG APPLICATION_NAME
 
-RUN rm -f /etc/apt/apt.conf.d/docker-clean \
-    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-
-# borrowed (Ba Dum Tss!) from
-# https://github.com/pablodeymo/rust-musl-builder/blob/7a7ea3e909b1ef00c177d9eeac32d8c9d7d6a08c/Dockerfile#L48-L49
-RUN --mount=type=cache,id=apt-cache-amd64,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lib-amd64,target=/var/lib/apt,sharing=locked \
-    apt-get update \
-    && apt-get --no-install-recommends install --yes \
-        build-essential \
-        musl-dev \
-        musl-tools
+# note that we don't do `--no-cache`. We want to keep the caches, as we do multi-stage build
+RUN apk update && apk add build-base musl-dev
 
 FROM rust-base AS rust-linux-amd64
 ARG TARGET=x86_64-unknown-linux-musl
 
 FROM rust-base AS rust-linux-arm64
 ARG TARGET=aarch64-unknown-linux-musl
-RUN --mount=type=cache,id=apt-cache-arm64,from=rust-base,source=/var/cache/apt,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lib-arm64,from=rust-base,source=/var/lib/apt,target=/var/lib/apt,sharing=locked \
-    dpkg --add-architecture arm64 \
-    && apt-get update \
-    && apt-get --no-install-recommends install --yes \
-        libc6-dev-arm64-cross \
-        gcc-aarch64-linux-gnu
 
 FROM rust-${TARGETPLATFORM//\//-} AS rust-cargo-build
 
