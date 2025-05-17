@@ -3,7 +3,7 @@ FROM --platform=${BUILDPLATFORM} rust:1.87.0-alpine AS rust-base
 ARG APPLICATION_NAME
 
 # note that we don't do `--no-cache`. We want to keep the caches, as we do multi-stage build
-RUN apk update && apk add make clang llvm perl
+RUN apk update && apk add bash make clang llvm perl
 
 FROM rust-base AS rust-linux-amd64
 ARG TARGET=x86_64-unknown-linux-musl

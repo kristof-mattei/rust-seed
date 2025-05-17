@@ -1,14 +1,20 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # static linking
 flags="-Clink-self-contained=yes "
 
 # mind the space between the [ and "
-if [ "$BUILDPLATFORM" = "$TARGETPLATFORM" ]; then
-    # default
-    cargo $@
-else
+if [[ "$BUILDPLATFORM" != "$TARGETPLATFORM" ]]; then
     flags="$flags -Clinker=rust-lld"
-
-    CC_aarch64_unknown_linux_musl="clang" AR_aarch64_unknown_linux_musl="llvm-ar" RUSTFLAGS=$flags cargo $@
 fi
+
+# replace - with _ in the Rust target
+target_lower=${TARGET//-/_}
+
+cc_var=CC_${target_lower}
+declare -x "${cc_var}=clang"
+
+ar_var=AR_${target_lower}
+declare -x "${ar_var}=llvm-ar"
+
+RUSTFLAGS=$flags cargo $@
