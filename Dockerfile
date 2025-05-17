@@ -1,9 +1,23 @@
-FROM --platform=${BUILDPLATFORM} rust:1.87.0-alpine AS rust-base
+FROM --platform=${BUILDPLATFORM} rust:1.87.0@sha256:5e33ae75f40bf25854fa86e33487f47075016d16726355a72171f67362ad6bf7 AS rust-base
 
 ARG APPLICATION_NAME
 
-# note that we don't do `--no-cache`. We want to keep the caches, as we do multi-stage build
-RUN apk update && apk add bash make clang llvm perl
+RUN rm -f /etc/apt/apt.conf.d/docker-clean \
+    && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+
+# borrowed (Ba Dum Tss!) from
+# https://github.com/pablodeymo/rust-musl-builder/blob/7a7ea3e909b1ef00c177d9eeac32d8c9d7d6a08c/Dockerfile#L48-L49
+RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lib,target=/var/lib/apt,sharing=locked \
+    dpkg --add-architecture arm64 \
+    && dpkg --add-architecture amd64 \
+    && apt-get update \
+    && apt-get --no-install-recommends install --yes \
+        build-essential \
+        musl-dev \
+        musl-tools \
+        libc6-dev-arm64-cross \
+        gcc-aarch64-linux-gnu
 
 FROM rust-base AS rust-linux-amd64
 ARG TARGET=x86_64-unknown-linux-musl
@@ -11,11 +25,19 @@ ARG TARGET=x86_64-unknown-linux-musl
 FROM rust-base AS rust-linux-arm64
 ARG TARGET=aarch64-unknown-linux-musl
 
+# RUN --mount=type=cache,id=apt-cache-arm64,from=rust-base,source=/var/cache/apt,target=/var/cache/apt,sharing=locked \
+#     --mount=type=cache,id=apt-lib-arm64,from=rust-base,source=/var/lib/apt,target=/var/lib/apt,sharing=locked \
+#     && apt-get update \
+#     && apt-get --no-install-recommends install --yes \
+#         libc6-dev-arm64-cross \
+#         gcc-aarch64-linux-gnu
+
 FROM rust-${TARGETPLATFORM//\//-} AS rust-cargo-build
 
 # expose (used in ./build.sh)
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
+ARG TARGETARCH
 
 RUN rustup target add ${TARGET}
 
@@ -43,6 +65,7 @@ FROM rust-cargo-build AS rust-build
 # expose (used in ./build.sh)
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
+ARG TARGETARCH
 
 WORKDIR /build/${APPLICATION_NAME}
 
