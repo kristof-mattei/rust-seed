@@ -1,4 +1,1 @@
-rustflags = ["-Clink-self-contained=yes"]
 
-[target.aarch64-unknown-linux-musl]
-linker = "rust-lld"

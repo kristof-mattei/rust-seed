@@ -11,10 +11,11 @@ ARG TARGET=x86_64-unknown-linux-musl
 FROM rust-base AS rust-linux-arm64
 ARG TARGET=aarch64-unknown-linux-musl
 
-ENV CC_aarch64_unknown_linux_musl="clang"
-ENV AR_aarch64_unknown_linux_musl="llvm-ar"
-
 FROM rust-${TARGETPLATFORM//\//-} AS rust-cargo-build
+
+# expose (used in ./build.sh)
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
 
 RUN rustup target add ${TARGET}
 
@@ -24,16 +25,24 @@ RUN rustup target add ${TARGET}
 # That means that if our dependencies don't change rebuilding is much faster
 WORKDIR /build
 RUN cargo new ${APPLICATION_NAME}
+
 WORKDIR /build/${APPLICATION_NAME}
+
+COPY ./build.sh .
+
 COPY .cargo ./.cargo
 COPY Cargo.toml Cargo.lock ./
 
 RUN --mount=type=cache,target=/build/${APPLICATION_NAME}/target \
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
     --mount=type=cache,id=cargo-registery,target=/usr/local/cargo/registry/,sharing=locked \
-    cargo build --release --target ${TARGET}
+    ./build.sh build --release --target ${TARGET}
 
 FROM rust-cargo-build AS rust-build
+
+# expose (used in ./build.sh)
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
 
 WORKDIR /build/${APPLICATION_NAME}
 
@@ -47,7 +56,7 @@ RUN touch ./src/main.rs
 RUN --mount=type=cache,target=/build/${APPLICATION_NAME}/target \
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
     --mount=type=cache,id=cargo-registery,target=/usr/local/cargo/registry/,sharing=locked \
-    cargo install --path . --target ${TARGET} --root /output
+    ./build.sh install --path . --target ${TARGET} --root /output
 
 FROM --platform=${BUILDPLATFORM} alpine:3.21.3@sha256:a8560b36e8b8210634f77d9f7f9efd7ffa463e380b75e2e74aff4511df3ef88c AS passwd-build
 
