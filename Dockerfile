@@ -9,15 +9,11 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
 # https://github.com/pablodeymo/rust-musl-builder/blob/7a7ea3e909b1ef00c177d9eeac32d8c9d7d6a08c/Dockerfile#L48-L49
 RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lib,target=/var/lib/apt,sharing=locked \
-    dpkg --add-architecture arm64 \
-    && dpkg --add-architecture amd64 \
-    && apt-get update \
+    apt-get update \
     && apt-get --no-install-recommends install --yes \
         build-essential \
         musl-dev \
-        musl-tools \
-        libc6-dev-arm64-cross \
-        gcc-aarch64-linux-gnu
+        musl-tools
 
 FROM rust-base AS rust-linux-amd64
 ARG TARGET=x86_64-unknown-linux-musl
@@ -25,19 +21,15 @@ ARG TARGET=x86_64-unknown-linux-musl
 FROM rust-base AS rust-linux-arm64
 ARG TARGET=aarch64-unknown-linux-musl
 
-# RUN --mount=type=cache,id=apt-cache-arm64,from=rust-base,source=/var/cache/apt,target=/var/cache/apt,sharing=locked \
-#     --mount=type=cache,id=apt-lib-arm64,from=rust-base,source=/var/lib/apt,target=/var/lib/apt,sharing=locked \
-#     && apt-get update \
-#     && apt-get --no-install-recommends install --yes \
-#         libc6-dev-arm64-cross \
-#         gcc-aarch64-linux-gnu
-
 FROM rust-${TARGETPLATFORM//\//-} AS rust-cargo-build
 
 # expose (used in ./build.sh)
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ARG TARGETARCH
+
+COPY ./setup-env.sh .
+RUN ./setup-env.sh
 
 RUN rustup target add ${TARGET}
 
