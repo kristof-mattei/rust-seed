@@ -29,7 +29,9 @@ ARG TARGETPLATFORM
 ARG TARGETARCH
 
 COPY ./setup-env.sh .
-RUN ./setup-env.sh
+RUN --mount=type=cache,id=apt-cache,from=rust-base,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lib,from=rust-base,target=/var/lib/apt,sharing=locked \
+    ./setup-env.sh
 
 RUN rustup target add ${TARGET}
 
