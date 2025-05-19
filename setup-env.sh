@@ -11,10 +11,10 @@ dpkg_add_arch() {
 if [[ "$BUILDPLATFORM" != "$TARGETPLATFORM" ]]; then
     case $TARGET in
         x86_64-unknown-linux-musl)
-            dpkg_add_arch "amd64" "i686"
+            dpkg_add_arch "amd64" "amd64"
 
             apt-get --no-install-recommends install --yes \
-                gcc-12-multilib-i686-linux-gnu
+                gcc-12-multilib
             ;;
         aarch64-unknown-linux-musl)
             dpkg_add_arch "arm64" "aarch64"

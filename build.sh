@@ -9,7 +9,7 @@ flags="-Clink-self-contained=yes -Clinker=rust-lld"
 if [[ "$BUILDPLATFORM" != "$TARGETPLATFORM" ]]; then
     case $TARGET in
         x86_64-unknown-linux-musl)
-            compiler="i686-linux-gnu-gcc"
+            compiler="x86_64-linux-gnu-gcc"
             ;;
         aarch64-unknown-linux-musl)
             compiler="aarch64-linux-gnu-gcc"
