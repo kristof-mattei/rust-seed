@@ -37,6 +37,7 @@ fn main() -> Result<(), color_eyre::Report> {
     color_eyre::install()?;
 
     println!("HELLO");
+    println!("WORLD");
 
     println!("{}", foo());
     println!("{}", bar());
