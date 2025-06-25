@@ -1,36 +1,49 @@
 [package]
-name = "rust-end-to-end-application"
+name = "rust-seed"
 # don't change this, it's updated before an actual build by update-version.sh
 version = "0.0.0-development"
-edition = "2021"
-rust-version = "1.73.0"
+edition = "2024"
+rust-version = "1.87.0"
 authors = ["Kristof Mattei"]
-description = "Rust end-to-end application"
+description = "Rust seed application"
 license-file = "LICENSE"
-categories = ["starter", "end-to-end"]
-keywords = ["integrity", "end-to-end", "starter", "docker", "release"]
-repository = "https://github.com/kristof-mattei/rust-end-to-end-application"
+categories = ["starter", "seed"]
+keywords = ["integrity", "seed", "starter", "docker", "release"]
+repository = "https://github.com/kristof-mattei/rust-seed"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lints.clippy]
+# don't stop from compiling / running
+all = "warn"
+cargo = "warn"
+complexity = "warn"
+correctness = "warn"
+pedantic = "warn"
+perf = "warn"
+# restriction = "warn"
+style = "warn"
+suspicious = "warn"
 
-[features]
-coverage = []
+# this has 0 performance implications, the binding is compiled away, and it could cause issues
+# when done blindly, plus it makes it harder to debug as you cannot put breakpoints on return
+# values of functions (yet)
+let_and_return = { level = "allow", priority = 127 }
+# nothing we can do about multiple crate versions, so this lint just creates noise
+multiple_crate_versions = { level = "allow", priority = 127 }
+# this one is debatable. continue is used in places to be explicit, and to guard against
+# issues when refactoring
+needless_continue = { level = "allow", priority = 127 }
+# this one causes confusion when combining variables (`foo`) and
+# dereferenced variables (`foo.bar`). The latter cannot be inlined
+# so we don't inline anything
+uninlined-format-args = { level = "allow", priority = 127 }
+
+[lints.rust]
+let_underscore_drop = { level = "deny", priority = 127 }
+non_ascii_idents = { level = "deny", priority = 127 }
 
 [dependencies]
-color-eyre = "0.6.2"
-# reqwest = { version = "0.11.5", features = ["json"] }
-# serde_json = "1.0.68"
-# serde = { version = "1.0.130", features = ["derive"] }
-# futures = "0.3.17"
-# tokio = { version = "1.12.0", features = ["full"] }
-# log = "0.4.14"
-# env_logger = "0.9.0"
-# serde_yaml = "0.8.21"
-# clap = { version = "3.0.14", features = ["derive"] }
+color-eyre = "0.6.5"
 
-# We compile the Docker container with musl to get a static library. Smaller, faster.
-# BUT that means that we need to include openssl
-# Documentation on the syntax:
-# https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies
-[target.'cfg(all(target_arch = "x86_64", target_os="linux", target_env="musl"))'.dependencies]
-# openssl = { version = "0.10.36", features = ["vendored"] }
+# OpenSSL for musl
+[target.'cfg(all(any(target_arch="x86_64", target_arch="aarch64"), target_os="linux", target_env="musl"))'.dependencies]
+openssl = { version = "0.10.73", features = ["vendored"] }

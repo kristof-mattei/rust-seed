@@ -1,12 +1,3 @@
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![deny(clippy::cargo)]
-#![deny(warnings)]
-// exceptions
-#![deny(let_underscore_drop)]
-#![deny(non_ascii_idents)]
-#![allow(clippy::uninlined_format_args)]
-
 // use std::path::PathBuf;
 
 // use env_logger::Env;
@@ -41,39 +32,6 @@ fn bar() -> &'static str {
 fn quz() -> &'static str {
     "Quz"
 }
-
-// async fn something_to_await(_: PathBuf) {
-//     println!("{}", foo());
-//     println!("{}", bar());
-//     todo!("TODO");
-// }
-
-// async fn run_app() {
-//     env_logger::Builder::from_env(Env::default().default_filter_or("INFO")).init();
-
-//     let Opt { some_value } = Opt::from_args();
-
-//     let mut tasks = FuturesUnordered::new();
-
-//     tasks.push(Box::pin(something_to_await(some_value)));
-
-//     loop {
-//         match tasks.next().await {
-//             None => {
-//                 info!("Done!");
-//                 return;
-//             }
-//             _ => {
-//                 info!("Waiting...")
-//             }
-//         }
-//     }
-// }
-
-// #[tokio::main]
-// async fn main() {
-//     run_app().await;
-// }
 
 struct IDrop {}
 

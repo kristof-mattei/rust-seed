@@ -7,15 +7,11 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'rust-end-to-end-application'",
+            "name": "Debug executable 'rust-seed'",
             "cargo": {
-                "args": [
-                    "build",
-                    "--bin=rust-end-to-end-application",
-                    "--package=rust-end-to-end-application"
-                ],
+                "args": ["build", "--bin=rust-seed", "--package=rust-seed"],
                 "filter": {
-                    "name": "rust-end-to-end-application",
+                    "name": "rust-seed",
                     "kind": "bin"
                 }
             },
@@ -23,23 +19,24 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
-                "RUST_LOG": "debug,rust_end_to_end_application=trace"
+                "RUST_LOG": "DEBUG,rust_seed=TRACE"
             },
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'rust-end-to-end-application'",
+            "name": "Debug unit tests in executable 'rust-seed'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=rust-end-to-end-application",
-                    "--package=rust-end-to-end-application"
+                    "--bin=rust-seed",
+                    "--package=rust-seed"
                 ],
                 "filter": {
-                    "name": "rust-end-to-end-application",
+                    "name": "rust-seed",
                     "kind": "bin"
                 }
             },
@@ -47,9 +44,10 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
-                "RUST_LOG": "debug,rust_end_to_end_application=trace"
+                "RUST_LOG": "DEBUG,rust_seed=TRACE"
             },
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         },
         {
             "type": "lldb",
@@ -60,7 +58,7 @@
                     "test",
                     "--no-run",
                     "--test=integration_tests",
-                    "--package=rust-end-to-end-application"
+                    "--package=rust-seed"
                 ],
                 "filter": {
                     "name": "integration_tests",
@@ -71,9 +69,10 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
-                "RUST_LOG": "debug,rust_end_to_end_application=trace"
+                "RUST_LOG": "DEBUG,rust_seed=TRACE"
             },
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         }
     ]
 }
