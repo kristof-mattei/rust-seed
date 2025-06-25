@@ -17,6 +17,11 @@ permissions:
   packages: write
   pull-requests: write
 
+concurrency:
+  # each new commit to a PR runs this workflow
+  # so we need to avoid a long running older one from overwriting the "pr-<number>-latest"
+  group: "${{ github.workflow }} @ ${{ github.ref_name }}"
+  cancel-in-progress: true
 env:
   CARGO_TERM_COLOR: always
   # set this to true in GitHub variables to enable building the container
@@ -26,12 +31,6 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
   RUSTFLAGS: --deny=warnings
-
-concurrency:
-  # each new commit to a PR runs this workflow
-  # so we need to avoid a long running older one from overwriting the "pr-<number>-latest"
-  group: "${{ github.workflow }} @ ${{ github.ref_name }}"
-  cancel-in-progress: true
 
 jobs:
   repo-has-container:
@@ -99,7 +98,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@b3958095189f34b95d402a680b6e96b7f194f7b9 # v1
+        uses: rui314/setup-mold@85c79d00377f0d32cdbae595a46de6f7c2fa6599 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -189,7 +188,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@b3958095189f34b95d402a680b6e96b7f194f7b9 # v1
+        uses: rui314/setup-mold@85c79d00377f0d32cdbae595a46de6f7c2fa6599 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -238,7 +237,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@b3958095189f34b95d402a680b6e96b7f194f7b9 # v1
+        uses: rui314/setup-mold@85c79d00377f0d32cdbae595a46de6f7c2fa6599 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -290,7 +289,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@b3958095189f34b95d402a680b6e96b7f194f7b9 # v1
+        uses: rui314/setup-mold@85c79d00377f0d32cdbae595a46de6f7c2fa6599 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -440,7 +439,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@b3958095189f34b95d402a680b6e96b7f194f7b9 # v1
+        uses: rui314/setup-mold@85c79d00377f0d32cdbae595a46de6f7c2fa6599 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -502,7 +501,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@b3958095189f34b95d402a680b6e96b7f194f7b9 # v1
+        uses: rui314/setup-mold@85c79d00377f0d32cdbae595a46de6f7c2fa6599 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -619,7 +618,7 @@ jobs:
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Build Docker image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
