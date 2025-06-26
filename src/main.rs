@@ -66,4 +66,11 @@ mod tests {
     fn assert_combined() {
         assert_eq!(format!("{}-{}-{}", foo(), bar(), quz()), "Foo-Bar-Quz");
     }
+
+    #[test]
+    fn string_parses() {
+        let s = "123";
+
+        assert!(matches!(s.parse(), Ok(123)));
+    }
 }
