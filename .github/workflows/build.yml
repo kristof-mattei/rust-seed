@@ -455,6 +455,8 @@ jobs:
 
           cargo --version
 
+          echo "::error file=app.js,line=1::Missing semicolon"
+
       - name: Run Clippy for GitHub Actions report
         uses: actions-rs-plus/clippy-check@0d83844d8ff1a67b11d384d9dd6adcdcf142a8a7 # v2.2.1
         with:
