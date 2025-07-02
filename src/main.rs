@@ -33,12 +33,20 @@ fn quz() -> &'static str {
     "Quz"
 }
 
+struct IDrop {}
+
+impl Drop for IDrop {
+    fn drop(&mut self) {}
+}
+
 fn main() -> Result<(), color_eyre::Report> {
     color_eyre::install()?;
 
     println!("{}", foo());
     println!("{}", bar());
     println!("{}", quz());
+
+    let _ = IDrop {};
 
     todo!("TODO");
 }
