@@ -711,7 +711,7 @@ jobs:
         run: |
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-amd64.tar
           echo "Pushing amd64: "
-          amd64=_digest$(docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 | grep --only-matching --perl-regexp "(?<=digest: sha256:)([a-z0-9]{64})(?= size:)")
+          amd64_digest=$(docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 | grep --only-matching --perl-regexp "(?<=digest: sha256:)([a-z0-9]{64})(?= size:)")
 
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-arm64.tar
           echo "Pushing arm64: "
