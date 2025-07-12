@@ -706,19 +706,19 @@ jobs:
 
       - name: Load individual platform images from artifacts & push to registry
         shell: bash
+        id: digests
         working-directory: ${{ steps.artifact.outputs.download-path }}
         run: |
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-amd64.tar
           echo "Pushing amd64: "
-          docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 --quiet
-          echo "Done pushing amd64"
-          docker manifest inspect ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 -v
+          amd64=_digest$(docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 | grep --only-matching --perl-regexp "(?<=digest: sha256:)([a-z0-9]{64})(?= size:)")
 
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-arm64.tar
           echo "Pushing arm64: "
-          docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
-          echo "Done pushing arm64"
-          docker manifest inspect ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64 -v
+          arm64_digest=$(docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64 | grep --only-matching --perl-regexp "(?<=digest: sha256:)([a-z0-9]{64})(?= size:)")
+
+          echo "amd64_digest=${amd64_digest}" >> ${GITHUB_OUTPUT}
+          echo "arm64_digest=${arm64_digest}" >> ${GITHUB_OUTPUT}
 
       - name: Create multiplatform image
         shell: bash
@@ -737,8 +737,8 @@ jobs:
 
           # merge the amd64 and arm64 containers in a new multiplatform one
           docker buildx imagetools create "${new_tags[@]}" "${new_labels[@]}" \
-            ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 \
-            ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
+            ${{ needs.docker-build.outputs.full_image_name }}:${{ steps.digests.outputs.amd64_digest }} \
+            ${{ needs.docker-build.outputs.full_image_name }}:${{ steps.digests.outputs.arm64_digest }}
 
           for new_tag in $(echo "${{ join(steps.meta.outputs.tags, ' ') }}"); do
             echo "${new_tag}:"
