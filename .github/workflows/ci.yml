@@ -737,8 +737,8 @@ jobs:
 
           # merge the amd64 and arm64 containers in a new multiplatform one
           docker buildx imagetools create "${new_tags[@]}" "${new_labels[@]}" \
-            ${{ needs.docker-build.outputs.full_image_name }}:${{ steps.digests.outputs.amd64_digest }} \
-            ${{ needs.docker-build.outputs.full_image_name }}:${{ steps.digests.outputs.arm64_digest }}
+            ${{ needs.docker-build.outputs.full_image_name }}@sha256:${{ steps.digests.outputs.amd64_digest }} \
+            ${{ needs.docker-build.outputs.full_image_name }}@sha256:${{ steps.digests.outputs.arm64_digest }}
 
           for new_tag in $(echo "${{ join(steps.meta.outputs.tags, ' ') }}"); do
             echo "${new_tag}:"
