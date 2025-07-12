@@ -709,11 +709,15 @@ jobs:
         working-directory: ${{ steps.artifact.outputs.download-path }}
         run: |
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-amd64.tar
-          docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64
+          echo "Pushing amd64: "
+          docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 --quiet
+          echo "Done pushing amd64"
           docker manifest inspect ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 -v
 
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-arm64.tar
+          echo "Pushing arm64: "
           docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
+          echo "Done pushing arm64"
           docker manifest inspect ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64 -v
 
       - name: Create multiplatform image
