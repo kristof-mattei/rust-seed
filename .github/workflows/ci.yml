@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Build
+name: CI
 
 on:
   push:
@@ -709,9 +709,11 @@ jobs:
         working-directory: ${{ steps.artifact.outputs.download-path }}
         run: |
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-amd64.tar
+          docker manifest ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 -v
           docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64
 
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-arm64.tar
+          docker manifest ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64 -v
           docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
 
       - name: Create multiplatform image
