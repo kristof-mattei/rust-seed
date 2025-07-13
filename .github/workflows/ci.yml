@@ -777,7 +777,6 @@ jobs:
           subject-digest: ${{ steps.multiplatform_image.outputs.digest }}
           push-to-registry: true
 
-
   all-done:
     name: All done
     # this is the job that should be marked as required on GitHub. It's the only one that'll reliably trigger
