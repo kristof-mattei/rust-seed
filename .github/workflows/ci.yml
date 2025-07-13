@@ -757,13 +757,13 @@ jobs:
             echo ""
           done
 
-    #   - name: Get digest of multiplatform image
-    #     shell: bash
-    #     id: multiplatform_image
-    #     run: |
-    #       digest=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
+      #   - name: Get digest of multiplatform image
+      #     shell: bash
+      #     id: multiplatform_image
+      #     run: |
+      #       digest=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
 
-    #       echo "digest=${digest}" >> ${GITHUB_OUTPUT}
+      #       echo "digest=${digest}" >> ${GITHUB_OUTPUT}
 
       - name: Publish to the actual repo
         shell: bash
@@ -771,7 +771,6 @@ jobs:
           docker buildx imagetools create \
             --tag ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
             ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
-
 
       - name: Compare digests of local registry version to pushed one
         shell: bash
