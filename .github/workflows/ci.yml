@@ -665,6 +665,8 @@ jobs:
         ports:
           - 5000:5000
     permissions:
+      attestations: write
+      id-token: write
       packages: write
     needs:
       - cargo-build
