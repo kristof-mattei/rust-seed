@@ -769,7 +769,7 @@ jobs:
         shell: bash
         run: |
           docker buildx imagetools create \
-            --tag ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
+            --tag ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} \
             ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
 
       - name: Compare digests of local registry version to pushed one
