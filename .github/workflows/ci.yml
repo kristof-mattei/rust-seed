@@ -770,12 +770,12 @@ jobs:
         run: |
           docker buildx imagetools create --tag ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{ needs.docker-build.outputs.full_image_name }}
-          subject-digest: ${{ steps.multiplatform_image.outputs.digest }}
-          push-to-registry: true
+    #   - name: Generate artifact attestation
+    #     uses: actions/attest-build-provenance@v2
+    #     with:
+    #       subject-name: ${{ needs.docker-build.outputs.full_image_name }}
+    #       subject-digest: ${{ steps.multiplatform_image.outputs.digest }}
+    #       push-to-registry: true
 
   all-done:
     name: All done
