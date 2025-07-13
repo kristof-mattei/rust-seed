@@ -474,6 +474,7 @@ jobs:
       application_name: ${{ steps.variables.outputs.application_name }}
       description: ${{ steps.variables.outputs.description }}
       full_image_name: ${{ steps.variables.outputs.full_image_name }}
+      local_registry_full_image_name: ${{ steps.variables.outputs.local_registry_full_image_name }}
       registry: ${{ steps.variables.outputs.registry }}
       unique_tag: ${{ steps.variables.outputs.unique_tag }}
     runs-on: ${{ matrix.runs-on }}
@@ -585,10 +586,18 @@ jobs:
           registry=${registry,,}
           echo "registry=${registry}" >> ${GITHUB_OUTPUT}
 
+          # The registry to which we'll push
+          local_registry=localhost:5000
+          local_registry=${local_registry,,}
+          echo "local_registry=${local_registry}" >> ${GITHUB_OUTPUT}
+
           # The full image name, which is the registry, the owner and the repo name
           image_name=${{ env.IMAGE_NAME }}
           image_name=${image_name,,}
           echo "full_image_name=${registry}/${image_name}" >> ${GITHUB_OUTPUT}
+
+          # The full image name for the local registry, which is the registry, the owner and the repo name
+          echo "local_registry_full_image_name=${local_registry}/${image_name}" >> ${GITHUB_OUTPUT}
 
           # The application's description, from Cargo.toml
           description=$(cargo get package.description)
@@ -605,7 +614,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.event.pull_request.base.sha }}-${{ github.event.pull_request.head.sha }}
             org.opencontainers.image.source=${{ github.event.pull_request.html_url }}
             org.opencontainers.image.version=pr-${{ github.event.number }}
-          images: ${{ steps.variables.outputs.full_image_name }}
+          images: ${{ steps.variables.outputs.local_registry_full_image_name }}
           tags: |
             type=raw,value=${{ steps.variables.outputs.unique_tag_arch }}
 
@@ -652,6 +661,11 @@ jobs:
   docker-publish:
     name: Publish Docker container
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:3
+        ports:
+          - 5000:5000
     permissions:
       packages: write
     needs:
@@ -706,19 +720,15 @@ jobs:
 
       - name: Load individual platform images from artifacts & push to registry
         shell: bash
-        id: digests
         working-directory: ${{ steps.artifact.outputs.download-path }}
         run: |
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-amd64.tar
           echo "Pushing amd64: "
-          amd64_digest=$(docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 | grep --only-matching --perl-regexp "(?<=digest: sha256:)([a-z0-9]{64})(?= size:)")
+          docker push ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64
 
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-arm64.tar
           echo "Pushing arm64: "
-          arm64_digest=$(docker push ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64 | grep --only-matching --perl-regexp "(?<=digest: sha256:)([a-z0-9]{64})(?= size:)")
-
-          echo "amd64_digest=${amd64_digest}" >> ${GITHUB_OUTPUT}
-          echo "arm64_digest=${arm64_digest}" >> ${GITHUB_OUTPUT}
+          docker push ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
 
       - name: Create multiplatform image
         shell: bash
@@ -737,8 +747,8 @@ jobs:
 
           # merge the amd64 and arm64 containers in a new multiplatform one
           docker buildx imagetools create "${new_tags[@]}" "${new_labels[@]}" \
-            ${{ needs.docker-build.outputs.full_image_name }}@sha256:${{ steps.digests.outputs.amd64_digest }} \
-            ${{ needs.docker-build.outputs.full_image_name }}@sha256:${{ steps.digests.outputs.arm64_digest }}
+            ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-amd64 \
+            ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
 
           for new_tag in $(echo "${{ join(steps.meta.outputs.tags, ' ') }}"); do
             echo "${new_tag}:"
