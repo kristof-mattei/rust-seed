@@ -731,17 +731,17 @@ jobs:
       - name: Create multiplatform image
         shell: bash
         run: |
-          new_labels=()
-          while IFS= read -r label; do
-            new_labels+=(--annotation)
-            new_labels+=("index:${label}")
-          done <<< "${{ steps.meta.outputs.labels }}"
-
           new_tags=()
           while IFS= read -r tag; do
             new_tags+=(--tag)
             new_tags+=(${tag})
           done <<< "${{ steps.meta.outputs.tags }}"
+
+          new_labels=()
+          while IFS= read -r label; do
+            new_labels+=(--annotation)
+            new_labels+=("index:${label}")
+          done <<< "${{ steps.meta.outputs.labels }}"
 
           # merge the amd64 and arm64 containers in a new multiplatform one
           docker buildx imagetools create "${new_tags[@]}" "${new_labels[@]}" \
@@ -754,6 +754,26 @@ jobs:
             # empty to get newline
             echo ""
           done
+
+      - name: Get digest of multiplatform image
+        shell: bash
+        id: multiplatform_image
+        run: |
+          digest=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
+
+          echo "digest=${digest}" >> ${GITHUB_OUTPUT}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ needs.docker-build.outputs.local_registry_full_image_name }}
+          subject-digest: ${{ steps.multiplatform_image.outputs.digest }}
+          push-to-registry: true
+
+      - name: Publish to the actual repo
+        shell: bash
+        run: |
+          docker buildx imagetools create --tag ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
 
   all-done:
     name: All done
