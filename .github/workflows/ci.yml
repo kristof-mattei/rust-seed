@@ -757,13 +757,13 @@ jobs:
             echo ""
           done
 
-      #   - name: Get digest of multiplatform image
-      #     shell: bash
-      #     id: multiplatform_image
-      #     run: |
-      #       digest=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
+      - name: Get digest of multiplatform image in our local registry
+        shell: bash
+        id: multiplatform_image
+        run: |
+          digest=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
 
-      #       echo "digest=${digest}" >> ${GITHUB_OUTPUT}
+          echo "digest=${digest}" >> ${GITHUB_OUTPUT}
 
       - name: Publish to the actual repo
         shell: bash
@@ -772,22 +772,17 @@ jobs:
             --tag ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} \
             ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }}
 
-      - name: Compare digests of local registry version to pushed one
-        shell: bash
-        id: multiplatform_image
-        run: |
-          digest_local_registry=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.local_registry_full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
-          digest_remote=$(docker buildx imagetools inspect ${{ needs.docker-build.outputs.full_image_name }}:${{ needs.docker-build.outputs.unique_tag }} --format "{{json .}}" | jq --raw-output ".manifest.digest")
-
-          echo "digest local registry = ${digest_local_registry}"
-          echo "digest remote= ${digest_remote}"
-
-    #   - name: Generate artifact attestation
-    #     uses: actions/attest-build-provenance@v2
-    #     with:
-    #       subject-name: ${{ needs.docker-build.outputs.full_image_name }}
-    #       subject-digest: ${{ steps.multiplatform_image.outputs.digest }}
-    #       push-to-registry: true
+      # note that we use the digest of the local image
+      # these digests don't change after pushing, but
+      # since we deal with tags (mutable), and the way to get a digest is to use the tag, I prefer
+      # sourcing the digest from the local registry we just spun up (trusted)
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        id: attestation
+        with:
+          subject-name: ${{ needs.docker-build.outputs.full_image_name }}
+          subject-digest: ${{ steps.multiplatform_image.outputs.digest }}
+          push-to-registry: true
 
   all-done:
     name: All done
