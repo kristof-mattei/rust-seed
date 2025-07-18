@@ -1,23 +1,25 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Update semantic tags on repo & image after release
-
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
-concurrency:
-  group: "${{ github.workflow }}"
-  cancel-in-progress: false # last one must win in case of multiple releases
 
 on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
+concurrency:
+  group: "${{ github.workflow }}"
+  cancel-in-progress: false # last one must win in case of multiple releases
+
 permissions:
   contents: write
   packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   repo-has-container:
@@ -31,8 +33,8 @@ jobs:
         id: determine
         shell: bash
         run: |
-          HAS_CONTAINER="${{ vars.HAS_CONTAINER }}"
-          echo "has_container=${HAS_CONTAINER:-false}" >> ${GITHUB_OUTPUT}
+          has_container="${{ vars.HAS_CONTAINER }}"
+          echo "has_container=${has_container:-false}" >> ${GITHUB_OUTPUT}
 
   retag-containers:
     name: Retag the containers
@@ -61,7 +63,7 @@ jobs:
           curl \
             --silent \
             --location \
-            --output ${json_path}\
+            --output ${json_path} \
             https://api.github.com/repos/google/go-containerregistry/releases/latest
 
           url_to_krane=$(cat ${json_path} |\
