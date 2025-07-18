@@ -1,8 +1,5 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Retag containers after new push / PR
-
-concurrency:
-  group: "${{ github.workflow }}" # last one must win
-  cancel-in-progress: false # no we need them
 
 on:
   # Triggers the workflow pushes to main. They can be either direct pushes, or PRs being merged
@@ -18,6 +15,10 @@ on:
   # pr-{head_of_pr}-{pr_head_of_main}
   # when with git rev-parse HEAD^2 we can find the incoming PR's head
   # Problem solved
+
+concurrency:
+  group: "${{ github.workflow }}" # last one must win
+  cancel-in-progress: false # no we need them
 
 permissions:
   contents: write
@@ -98,7 +99,7 @@ jobs:
           curl \
             --silent \
             --location \
-            --output ${json_path}\
+            --output ${json_path} \
             https://api.github.com/repos/google/go-containerregistry/releases/latest
 
           url_to_krane=$(cat ${json_path} |\

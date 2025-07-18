@@ -1,1 +1,1 @@
-allowed-duplicate-crates = []
+absolute-paths-allowed-crates = ["std"]

@@ -1,31 +1,17 @@
 {
   "name": "rust-seed",
-  "version": "0.0.0-development",
-  "description": "It's written in Rust!",
-  "main": "src/main.rs",
-  "scripts": {
-    "format": "prettier --write .",
-    "release": "semantic-release"
-  },
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
   "engines": {
-    "node": ">=22.16.0",
-    "npm": ">=11.4.1"
+    "node": "22.17.1",
+    "pnpm": "10.13.1"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kristof-mattei/rust-seed.git"
+  "scripts": {
+    "format": "prettier --write ."
   },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/kristof-mattei/rust-seed/issues"
-  },
-  "homepage": "https://github.com/kristof-mattei/rust-seed#readme",
   "devDependencies": {
-    "prettier": "3.5.3",
-    "prettier-plugin-sh": "0.17.4"
-  },
-  "publishConfig": {
-    "access": "restricted"
+    "prettier": "3.6.2",
+    "prettier-plugin-sh": "0.18.0",
+    "prettier-plugin-toml": "2.0.6"
   }
 }
