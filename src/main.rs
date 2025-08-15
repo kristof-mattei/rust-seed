@@ -37,7 +37,9 @@ fn quz() -> &'static str {
 fn main() -> Result<(), color_eyre::Report> {
     color_eyre::install()?;
 
-    "this is a compilation failure"
+    for i in 0..5 {
+        println!("Hi {}", i);
+    }
 
     println!("{}", foo());
     println!("{}", bar());
