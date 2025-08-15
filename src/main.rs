@@ -37,6 +37,10 @@ fn quz() -> &'static str {
 fn main() -> Result<(), color_eyre::Report> {
     color_eyre::install()?;
 
+    for i in 0..5 {
+        println!("Hi {}", i);
+    }
+
     println!("{}", foo());
     println!("{}", bar());
     println!("{}", quz());
