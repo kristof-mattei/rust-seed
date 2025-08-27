@@ -43,7 +43,7 @@ jobs:
       fromJSON(needs.repo-has-crate.outputs.has_crate) == true
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           show-progress: false
 
@@ -61,7 +61,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - name: Set up mold
-        uses: rui314/setup-mold@7344740a9418dcdcb481c7df83d9fbd1d5072d7d # v1
+        uses: rui314/setup-mold@725a8794d15fc7563f59595bd9556495c0564878 # v1
 
       - name: Set up toolchain
         shell: bash
@@ -101,7 +101,7 @@ jobs:
       - name: Install cargo-edit to do set-version
         shell: bash
         run: |
-          cargo binstall --no-confirm cargo-edit
+          cargo binstall --github-token ${{ secrets.GITHUB_TOKEN }} --no-confirm cargo-edit
 
       - name: Set version in Cargo.toml / Cargo.lock
         shell: bash
