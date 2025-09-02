@@ -558,6 +558,7 @@ jobs:
         id: meta
         with:
           labels: |
+            org.opencontainers.image.title="jell-o!"
             org.opencontainers.image.description=${{ needs.docker-build.outputs.description }}
             org.opencontainers.image.revision=${{ github.event.pull_request.base.sha }}-${{ github.event.pull_request.head.sha }}
             org.opencontainers.image.source=${{ github.event.pull_request.html_url }}
@@ -581,7 +582,7 @@ jobs:
           docker load --input ./${{ needs.docker-build.outputs.unique_tag }}.tar
           docker push ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}
 
-      - name: Create image in final destination
+      - name: Update tags and annotations
         shell: bash
         run: |
           new_tags=()
