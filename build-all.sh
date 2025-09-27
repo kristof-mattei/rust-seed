@@ -14,5 +14,5 @@ build() {
 
 name=$(basename ${PWD})
 
-build $name linux/amd64
+build $name linux/amd64/v3
 build $name linux/arm64
