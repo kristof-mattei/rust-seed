@@ -84,6 +84,7 @@ jobs:
           show-progress: false
           fetch-depth: 0
 
+      # when updating this, ensure you update the `Cache cargo` step in the `docker-build` job
       - &cache_cargo
         name: Cache cargo
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -430,6 +431,7 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.job }}
           restore-keys: |
+            # deviation from standard `*cache_cargo`, this is the pre-build step. We really want that one
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-prebuild-cargo-edit-cargo-get
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
             ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
