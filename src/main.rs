@@ -33,6 +33,12 @@ fn quz() -> &'static str {
     "Quz"
 }
 
+struct IDrop {}
+
+impl Drop for IDrop {
+    fn drop(&mut self) {}
+}
+
 #[expect(clippy::todo, reason = "Seed code")]
 fn main() -> Result<(), color_eyre::Report> {
     color_eyre::install()?;
@@ -41,8 +47,18 @@ fn main() -> Result<(), color_eyre::Report> {
     println!("{}", bar());
     println!("{}", quz());
 
+    let héllo = "accent?";
+
+    let _ = IDrop {};
+
+    println!("{}", héllo);
+
+    let foo = "foo";
+
     todo!("TODO");
 }
+
+fn i_am_dead() {}
 
 #[cfg(test)]
 mod tests {
