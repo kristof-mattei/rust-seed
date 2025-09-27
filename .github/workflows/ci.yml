@@ -360,6 +360,11 @@ jobs:
 
       - *set_up_toolchain
 
+      - name: Fake an error
+        shell: bash
+        run: |
+          echo "::error file=app.js,line=1::Missing semicolon"
+
       - name: Run Clippy for GitHub Actions report
         uses: actions-rs-plus/clippy-check@fe8905c5766416f0593a503a2230a7c83141a8f0 # v2.3.0
         with:
