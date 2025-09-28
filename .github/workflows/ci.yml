@@ -21,13 +21,37 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   CARGO_FEATURES: --all-features
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  IMAGE_VARIANTS: |-
+    arm64
+    amd64
+    amd64/v2
+    amd64/v3
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
   RUSTFLAGS: --deny=warnings
 
 jobs:
+  architectures:
+    name: Build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      architectures: ${{ steps.matrix.outputs.architectures }}
+    steps:
+      - name: Build matrix
+        uses: actions/github-script@v7
+        id: matrix
+        with:
+          script: |
+            const architectures = process.env.IMAGE_VARIANTS.trim().split("\n").map((a) => a.trim());
+
+            const json = JSON.stringify(architectures);
+
+            console.log(json);
+
+            core.setOutput("architectures", json);
+
   repo-has-container:
     name: Repo has container?
     runs-on: ubuntu-latest
@@ -397,9 +421,7 @@ jobs:
         runs-on:
           - "ubuntu-latest"
           - "ubuntu-24.04-arm"
-        platform:
-          - "amd64/v3"
-          - "arm64"
+        platform: ${{ fromJSON(needs.architectures.outputs.architectures) }}
     outputs:
       application_name: ${{ steps.variables.outputs.application_name }}
       description: ${{ steps.variables.outputs.description }}
@@ -413,6 +435,7 @@ jobs:
       packages: write
     needs:
       - calculate-version
+      - architectures
       # ensures cache of cargo-edit and cargo-get
       - prebuild-cargo-edit-cargo-get
     # if:
@@ -527,7 +550,9 @@ jobs:
         shell: bash
         id: setup_qemu
         run: |
-          if ! dpkg-architecture --equal "${{ matrix.platform }}"; then
+          base_platform="${{ matrix.platform }}"
+
+          if ! dpkg-architecture --equal "${base_platform%/*}"; then
             echo "setup_qemu=true" >> ${GITHUB_OUTPUT}
           else
             echo "setup_qemu=false" >> ${GITHUB_OUTPUT}
@@ -633,13 +658,12 @@ jobs:
         shell: bash
         working-directory: ${{ steps.artifact.outputs.download-path }}
         run: |
-          docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-amd64-v3.tar
-          echo "Pushing amd64:"
-          docker push ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-amd64-v3
-
-          docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-arm64.tar
-          echo "Pushing arm64:"
-          docker push ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
+          while IFS= read -r platform; do
+            echo "Loading ${platform//\//-}:"
+            docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-${platform//\//-}.tar
+            echo "Pushing ${platform//\//-}:"
+            docker push ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-${platform//\//-}
+          done <<< "${{ env.IMAGE_VARIANTS }}"
 
       - name: Create multiplatform image in local registry
         shell: bash
@@ -650,7 +674,7 @@ jobs:
             new_labels+=("index:${label}")
           done <<< "${{ steps.meta.outputs.labels }}"
 
-          # merge the amd64 and arm64 containers in a new multiplatform one
+          # merge the platform containers in a new multiplatform one
           # with the new labels, and push it to our local registry
           docker buildx imagetools create "${new_labels[@]}" --tag "${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}" \
             ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-amd64-v3 \
