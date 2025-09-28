@@ -48,8 +48,6 @@ jobs:
 
             const json = JSON.stringify(architectures);
 
-            console.log(json);
-
             core.setOutput("architectures", json);
 
   repo-has-container:
@@ -658,16 +656,19 @@ jobs:
         shell: bash
         working-directory: ${{ steps.artifact.outputs.download-path }}
         run: |
+          platforms=()
           while IFS= read -r platform; do
             echo "Loading ${platform//\//-}:"
             docker load --input ./${{ needs.docker-build.outputs.unique_tag }}-${platform//\//-}.tar
+
+            full_name_with_platform=${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-${platform//\//-}
+
             echo "Pushing ${platform//\//-}:"
-            docker push ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-${platform//\//-}
+            docker push $full_name_with_platform
+
+            platforms+=("$full_name_with_platform")
           done <<< "${{ env.IMAGE_VARIANTS }}"
 
-      - name: Create multiplatform image in local registry
-        shell: bash
-        run: |
           new_labels=()
           while IFS= read -r label; do
             new_labels+=(--annotation)
@@ -677,8 +678,7 @@ jobs:
           # merge the platform containers in a new multiplatform one
           # with the new labels, and push it to our local registry
           docker buildx imagetools create "${new_labels[@]}" --tag "${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}" \
-            ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-amd64-v3 \
-            ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}-arm64
+            "${platforms[@]}"
 
           echo "Inspecting ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}:"
           docker buildx imagetools inspect --raw ${{ needs.docker-build.outputs.full_image_name_local_registry }}:${{ needs.docker-build.outputs.unique_tag }}
