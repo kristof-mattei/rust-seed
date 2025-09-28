@@ -17,13 +17,13 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
         build-essential \
         musl-dev
 
-FROM rust-base AS rust-linux-amd64-v3
+FROM rust-base AS rust-linux-amd64
 ARG TARGET=x86_64-unknown-linux-musl
 
 FROM rust-base AS rust-linux-arm64
 ARG TARGET=aarch64-unknown-linux-musl
 
-FROM rust-${TARGETPLATFORM//\//-} AS rust-cargo-build
+FROM rust-linux-${TARGETARCH//\//-} AS rust-cargo-build
 
 ARG DEBIAN_FRONTEND=noninteractive
 
