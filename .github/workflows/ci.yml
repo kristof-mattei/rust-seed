@@ -286,10 +286,10 @@ jobs:
 
       - *get_binstall
 
-      - name: Install nextest, custom test runner, with native support for junit and grcov
+      - name: Install nextest, custom test runner, with native support for junit and cargo-llvm-cov for coverage reporting
         shell: bash
         run: |
-          cargo binstall --github-token ${{ secrets.GITHUB_TOKEN }} --no-confirm cargo-nextest grcov
+          cargo binstall --github-token ${{ secrets.GITHUB_TOKEN }} --no-confirm cargo-nextest cargo-llvm-cov
 
       - name: Build with instrumentation support
         shell: bash
@@ -300,14 +300,14 @@ jobs:
         run: |
           cargo build ${{ env.CARGO_FEATURES }} --all-targets --locked --workspace --verbose
 
-      - name: Run nextest
+      - name: Run tests with coverage
         shell: bash
         id: tests
         env:
           RUSTFLAGS: "${{ env.RUSTFLAGS }} --allow=warnings -Cinstrument-coverage"
           LLVM_PROFILE_FILE: "profiling/profile-%p-%m.profraw"
         run: |
-          cargo nextest run --profile ci --no-fail-fast ${{ env.CARGO_FEATURES }} --all-targets --workspace
+          cargo llvm-cov nextest --profile ci --no-fail-fast --all-targets --all-features --workspace --lcov --output-path reports/lcov.info
         continue-on-error: true
 
       - name: Upload test results
@@ -317,19 +317,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             reports/results.xml
-
-      - name: Run grcov
-        shell: bash
-        run: |
-          grcov $(find . -name "profile-*.profraw" -print) \
-            --binary-path ./target/debug/ \
-            --branch \
-            --ignore-not-existing \
-            --keep-only "src/**" \
-            --llvm \
-            --output-path ./reports/lcov.info \
-            --output-type lcov \
-            --source-dir .
 
       - name: Upload coverage results (to Codecov.io)
         uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1

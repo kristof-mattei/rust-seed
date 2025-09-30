@@ -66,6 +66,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "coverage-helper"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "435aea653a110cde24da15ca2dac9e06d17d92ce2bd6c2b9179b508abbe6f06f"
+
+[[package]]
 name = "eyre"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -146,6 +152,7 @@ name = "rust-seed"
 version = "0.0.0-development"
 dependencies = [
  "color-eyre",
+ "coverage-helper",
 ]
 
 [[package]]

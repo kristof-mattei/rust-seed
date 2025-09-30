@@ -14,6 +14,16 @@ include = ["src/**", "/LICENSE", "/LICENSE-*"]
 [dependencies]
 color-eyre = "0.6.5"
 
+[dev-dependencies]
+coverage-helper = "0.2.4"
+
+# We compile the Docker container with musl to get a static library. Smaller, faster.
+# BUT that means that we need to include openssl
+# Documentation on the syntax:
+# https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies
+[target.'cfg(all(any(target_arch="x86_64", target_arch="aarch64"), target_os="linux", target_env="musl"))'.dependencies]
+# openssl = { version = "0.10.36", features = ["vendored"] }
+
 [lints.clippy]
 # don't stop from compiling / running
 all = "warn"
