@@ -1,0 +1,6 @@
+{
+    "platform": "github",
+    "gitAuthor": "km-renovate[bot] <2068092+km-renovate[bot]@users.noreply.github.com>",
+    "autodiscover": false,
+    "allowedCommands": [".*"]
+}
