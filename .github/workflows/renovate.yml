@@ -1,12 +1,12 @@
 name: Renovate
 on:
   push:
-    branches:
-      - main
+    branches: []
+      # - main
   # The "*" (#42, asterisk) character has special semantics in YAML, so this
   # string has to be quoted.
-  schedule:
-    - cron: "0 * * * *"
+  schedule: []
+    # - cron: "0 * * * *"
   # Manual trigger is also possible
   workflow_dispatch:
     inputs:
