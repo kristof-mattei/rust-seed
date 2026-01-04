@@ -40,7 +40,7 @@ jobs:
           show-progress: false
 
       - name: Install git-cliff to generate changelog & next version number
-        uses: taiki-e/install-action@v2.65.11
+        uses: taiki-e/install-action@a983ca795126a4be4e8a44879ac5c4c3ef66cae1 # v2.65.11
         with:
           tool: git-cliff
 
