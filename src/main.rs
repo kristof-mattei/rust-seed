@@ -1,78 +1,104 @@
-use color_eyre::config::HookBuilder;
-use color_eyre::eyre;
+use std::error::Error;
+use std::fmt;
+use std::fs::{File, read_dir};
+use std::io::BufReader;
+use std::path::Path;
 
-use crate::build_env::get_build_env;
-mod build_env;
+use hashbrown::HashSet;
+use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor};
+use serde_json::de::Deserializer;
 
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
-fn foo() -> &'static str {
-    "Foo"
+fn main() -> Result<(), Box<dyn Error>> {
+    let lines = collect_unique_lines(Path::new("src/input"))?;
+    println!("{lines:?}");
+    Ok(())
 }
 
-fn bar() -> &'static str {
-    "Bar"
-}
+fn collect_unique_lines(dir: &Path) -> Result<HashSet<String>, Box<dyn Error>> {
+    let mut lines = HashSet::new();
 
-fn quz() -> &'static str {
-    "Quz"
-}
-
-fn i_will_error() -> Result<(), eyre::Report> {
-    Err(eyre::Report::msg("I promised you, I'd error!"))
-}
-
-fn print_header() {
-    const NAME: &str = env!("CARGO_PKG_NAME");
-    const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-    let build_env = get_build_env();
-
-    println!(
-        "{} v{} - built for {} ({})",
-        NAME,
-        VERSION,
-        build_env.get_target(),
-        build_env.get_target_cpu().unwrap_or("base cpu variant"),
-    );
-}
-
-fn main() -> Result<(), eyre::Report> {
-    HookBuilder::default()
-        .capture_span_trace_by_default(true)
-        .install()?;
-
-    print_header();
-
-    println!("{}", foo());
-    println!("{}", bar());
-    println!("{}", quz());
-
-    i_will_error()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{bar, foo, quz};
-
-    #[test]
-    fn assert_foo() {
-        assert_eq!(foo(), "Foo");
+    for entry in read_dir(dir)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_dir() {
+            let file = File::open(entry.path())?;
+            let reader = BufReader::new(file);
+            let mut de = Deserializer::from_reader(reader);
+            LinesObjectSeed { lines: &mut lines }.deserialize(&mut de)?;
+        }
     }
 
-    #[test]
-    fn assert_bar() {
-        assert_eq!(bar(), "Bar");
+    Ok(lines)
+}
+
+struct LinesObjectSeed<'a> {
+    lines: &'a mut HashSet<String>,
+}
+
+impl<'de> DeserializeSeed<'de> for LinesObjectSeed<'_> {
+    type Value = ();
+
+    fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_map(self)
+    }
+}
+
+impl<'de> Visitor<'de> for LinesObjectSeed<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an object containing a `lines` array")
     }
 
-    #[test]
-    fn assert_quz() {
-        assert_eq!(quz(), "Quz");
+    fn visit_map<M>(self, mut map: M) -> Result<(), M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+        while let Some(key) = map.next_key::<String>()? {
+            if key == "lines" {
+                map.next_value_seed(LinesArraySeed { lines: self.lines })?;
+            } else {
+                map.next_value::<IgnoredAny>()?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+struct LinesArraySeed<'a> {
+    lines: &'a mut HashSet<String>,
+}
+
+impl<'de> DeserializeSeed<'de> for LinesArraySeed<'_> {
+    type Value = ();
+
+    fn deserialize<D>(self, deserializer: D) -> Result<(), D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(self)
+    }
+}
+
+impl<'de> Visitor<'de> for LinesArraySeed<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an array of lines")
     }
 
-    #[test]
-    fn assert_combined() {
-        assert_eq!(format!("{}-{}-{}", foo(), bar(), quz()), "Foo-Bar-Quz");
+    fn visit_seq<S>(self, mut seq: S) -> Result<(), S::Error>
+    where
+        S: SeqAccess<'de>,
+    {
+        while let Some(line) = seq.next_element::<String>()? {
+            dbg!(&line);
+
+            self.lines.insert(line);
+        }
+        Ok(())
     }
 }

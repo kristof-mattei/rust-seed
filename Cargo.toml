@@ -14,7 +14,12 @@ build = "src/build.rs"
 
 [dependencies]
 color-eyre = "0.6.5"
+hashbrown = { version = "0.16.1", default-features = false, features = ["default-hasher", "equivalent", "inline-more", "serde"] }
 mimalloc = { version = "0.1.48", features = ["v3"] }
+schemars = "1.2.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+xml = "1.2.0"
 
 [package.metadata.spellcheck]
 config = "spellcheck.toml"
