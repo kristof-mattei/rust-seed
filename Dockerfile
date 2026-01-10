@@ -1,5 +1,5 @@
 # Rust toolchain setup
-FROM --platform=${BUILDPLATFORM} rust:1.91.1-slim-trixie@sha256:f379d71f15aa118a7b57caa5f305e58b8f50d317ea68336b05d797ad9360ea68 AS rust-base
+FROM --platform=${BUILDPLATFORM} rust:1.92.0-slim-trixie@sha256:6cff8a33b03d328aa58d00dedda6a3c5bbee4b41e21533932bffd90d7d58f9c4 AS rust-base
 
 ARG APPLICATION_NAME
 ARG DEBIAN_FRONTEND=noninteractive
@@ -91,7 +91,7 @@ RUN --mount=type=cache,target=/build/target/${TARGET},sharing=locked \
     /build-scripts/build.sh install --path . --locked --target-dir ./target/${TARGET} --root /output
 
 # Container user setup
-FROM --platform=${BUILDPLATFORM} alpine:3.22.2@sha256:4b7ce07002c69e8f3d704a9c5d6fd3053be500b7f1c69fc0d80990c2ad8dd412 AS passwd-build
+FROM --platform=${BUILDPLATFORM} alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62 AS passwd-build
 
 # setting `--system` prevents prompting for a password
 RUN addgroup --gid 900 appgroup \

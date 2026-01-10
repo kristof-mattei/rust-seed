@@ -2,7 +2,7 @@
 name = "rust-seed"
 version = "0.0.0-development"
 edition = "2024"
-rust-version = "1.91.1"
+rust-version = "1.92.0"
 authors = ["Kristof Mattei"]
 description = "Rust seed application"
 license = "MIT"
@@ -15,6 +15,9 @@ build = "src/build.rs"
 [dependencies]
 color-eyre = "0.6.5"
 mimalloc = { version = "0.1.48", features = ["v3"] }
+
+[package.metadata.spellcheck]
+config = "spellcheck.toml"
 
 [lints.clippy]
 # don't stop from compiling / running
