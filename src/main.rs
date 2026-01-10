@@ -1,25 +1,11 @@
-// use std::path::PathBuf;
+use color_eyre::config::HookBuilder;
+use color_eyre::eyre;
 
-// use env_logger::Env;
-// use futures::{stream::FuturesUnordered, StreamExt};
-// use log::info;
+use crate::build_env::get_build_env;
+mod build_env;
 
-// use structopt::StructOpt;
-
-// #[derive(Debug, StructOpt)]
-// #[structopt(
-//     // name, // from Cargo.toml,
-//     about, // needed otherwise it doesn't show description from Cargo.toml,
-//     author // needed otherwise it doesn't show author from Cargo.toml
-// )]
-// struct Opt {
-//     #[structopt(
-//         // verbatim_doc_comment,
-//         help = "Some help",
-//         parse(from_os_str)
-//     )]
-//     some_value: PathBuf,
-// }
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 fn foo() -> &'static str {
     "Foo"
@@ -33,21 +19,37 @@ fn quz() -> &'static str {
     "Quz"
 }
 
-#[expect(clippy::todo, reason = "Seed code")]
-fn main() -> Result<(), color_eyre::Report> {
-    color_eyre::install()?;
+fn i_will_error() -> Result<(), eyre::Report> {
+    Err(eyre::Report::msg("I promised you, I'd error!"))
+}
+
+fn print_header() {
+    const NAME: &str = env!("CARGO_PKG_NAME");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    let build_env = get_build_env();
+
+    println!(
+        "{} v{} - built for {} ({})",
+        NAME,
+        VERSION,
+        build_env.get_target(),
+        build_env.get_target_cpu().unwrap_or("base cpu variant"),
+    );
+}
+
+fn main() -> Result<(), eyre::Report> {
+    HookBuilder::default()
+        .capture_span_trace_by_default(true)
+        .install()?;
+
+    print_header();
 
     println!("{}", foo());
     println!("{}", bar());
     println!("{}", quz());
 
-    println!(
-        "BUILT FOR {} {}",
-        std::env::var("TARGETARCH").unwrap(),
-        std::env::var("TARGETVARIANT").unwrap()
-    );
-
-    todo!("TODO");
+    i_will_error()
 }
 
 #[cfg(test)]

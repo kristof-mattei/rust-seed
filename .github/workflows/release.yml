@@ -35,68 +35,16 @@ jobs:
           exit 1
 
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
           show-progress: false
           token: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
 
-      - name: Cache cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        env:
-          CACHE_NAME: cargo
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-git-cliff
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
-
-      - name: Set up toolchain
-        shell: bash
-        run: |
-          rm ${HOME}/.cargo/bin/cargo-fmt
-          rm ${HOME}/.cargo/bin/rust-analyzer
-          rm ${HOME}/.cargo/bin/rustfmt
-
-          rustup self update
-          rustup update
-          rustup show active-toolchain || rustup toolchain install
-          rustup show
-
-          cargo --version
-
-      - name: Get binstall
-        shell: bash
-        working-directory: /tmp
-        run: |
-          archive="cargo-binstall-x86_64-unknown-linux-musl.tgz"
-          wget \
-            --output-document=- \
-            --timeout=10 \
-            --waitretry=3 \
-            --retry-connrefused \
-            --progress=dot:mega \
-            "https://github.com/cargo-bins/cargo-binstall/releases/latest/download/${archive}" \
-            | tar \
-                --directory=${HOME}/.cargo/bin/ \
-                --strip-components=0 \
-                --no-overwrite-dir \
-                --extract \
-                --verbose \
-                --gunzip \
-                --file=-
-
       - name: Install git-cliff to generate changelog & next version number
-        shell: bash
-        run: |
-          cargo binstall --github-token ${{ secrets.GITHUB_TOKEN }} --no-confirm git-cliff
+        uses: taiki-e/install-action@83961fc0a2afe7f045535b5741d9a6418d7e1168 # v2.66.0
+        with:
+          tool: git-cliff
 
       - name: Get new version, generated updated changelog and update repo with updated changelog
         shell: bash
@@ -127,7 +75,7 @@ jobs:
           git-cliff --output diff-CHANGELOG.md --current --github-token ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload github release
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           body_path: diff-CHANGELOG.md
           tag_name: ${{ steps.release.outputs.version }}

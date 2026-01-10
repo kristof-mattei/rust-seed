@@ -1,5 +1,5 @@
 # Rust toolchain setup
-FROM --platform=${BUILDPLATFORM} rust:1.90.0-slim-trixie@sha256:ba1dce9c83aa4989e7b6406302845d24ff20c1f25f0478e0cc42952fde492fba AS rust-base
+FROM --platform=${BUILDPLATFORM} rust:1.92.0-slim-trixie@sha256:6cff8a33b03d328aa58d00dedda6a3c5bbee4b41e21533932bffd90d7d58f9c4 AS rust-base
 
 ARG APPLICATION_NAME
 ARG DEBIAN_FRONTEND=noninteractive
@@ -47,6 +47,8 @@ RUN cargo init --name ${APPLICATION_NAME}
 
 COPY ./.cargo ./Cargo.toml ./Cargo.lock ./
 
+RUN echo "fn main() {}" > ./src/build.rs
+
 # We use `fetch` to pre-download the files to the cache
 # Notice we do this in the target arch specific branch
 # We do this because we want to do it after `setup-env.sh`,
@@ -63,28 +65,33 @@ RUN --mount=type=cache,target=/build/target/${TARGET},sharing=locked \
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
-    /build-scripts/build.sh build --release --target ${TARGET} --target-dir ./target/${TARGET}
+    /build-scripts/build.sh build --release --target-dir ./target/${TARGET}
 
 # Rust full build
 FROM rust-cargo-build AS rust-build
+
+# to expose into `build.sh`
+ARG TARGETVARIANT
 
 WORKDIR /build
 
 # now we copy in the source which is more prone to changes and build it
 COPY ./src ./src
 
-# ensure cargo picks up on the change
-RUN touch ./src/main.rs
+# ensure cargo picks up on the fact that we copied in our code
+RUN touch ./src/main.rs ./src/build.rs
+
+ENV PATH="/output/bin:$PATH"
 
 # --release not needed, it is implied with install
 RUN --mount=type=cache,target=/build/target/${TARGET},sharing=locked \
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
-    /build-scripts/build.sh install --path . --locked --target ${TARGET} --target-dir ./target/${TARGET} --root /output
+    /build-scripts/build.sh install --path . --locked --target-dir ./target/${TARGET} --root /output
 
 # Container user setup
-FROM --platform=${BUILDPLATFORM} alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 AS passwd-build
+FROM --platform=${BUILDPLATFORM} alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62 AS passwd-build
 
 # setting `--system` prevents prompting for a password
 RUN addgroup --gid 900 appgroup \
@@ -97,8 +104,6 @@ RUN cat /etc/passwd | grep appuser > /tmp/passwd_appuser
 FROM scratch
 
 ARG APPLICATION_NAME
-ARG TARGETARCH
-ARG TARGETVARIANT
 
 COPY --from=passwd-build /tmp/group_appuser /etc/group
 COPY --from=passwd-build /tmp/passwd_appuser /etc/passwd
@@ -108,8 +113,6 @@ COPY --from=rust-build /output/bin/${APPLICATION_NAME} /app/entrypoint
 USER appuser
 
 ENV RUST_BACKTRACE=full
-ENV TARGETARCH=${TARGETARCH}
-ENV TARGETVARIANT=${TARGETVARIANT}
 
 WORKDIR /app
 
