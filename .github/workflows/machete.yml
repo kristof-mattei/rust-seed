@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Machete
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  machete:
+    name: Machete
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          show-progress: false
+
+      - name: Cache cargo
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        env:
+          CACHE_NAME: cargo
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-cargo-machete
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
+
+      - name: Set up toolchain
+        shell: bash
+        run: |
+          rm ${HOME}/.cargo/bin/cargo-fmt
+          rm ${HOME}/.cargo/bin/rust-analyzer
+          rm ${HOME}/.cargo/bin/rustfmt
+
+          rustup self update
+          rustup update
+          rustup show active-toolchain || rustup toolchain install
+          rustup show
+
+          cargo --version
+
+      - name: Install cargo-machete to ensure we don't have unneeded packages
+        uses: taiki-e/install-action@83961fc0a2afe7f045535b5741d9a6418d7e1168 # v2.66.0
+        with:
+          tool: cargo-machete
+
+      - name: Run cargo machete
+        shell: bash
+        run: |
+          cargo machete
