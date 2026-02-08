@@ -118,6 +118,7 @@ COPY --from=passwd-build /tmp/group_appuser /etc/group
 COPY --from=passwd-build /tmp/passwd_appuser /etc/passwd
 
 COPY --from=rust-build /output/bin/${APPLICATION_NAME} /app/entrypoint
+COPY --from=rust-build /output/bin/${APPLICATION_NAME} /app/entrypoint
 
 USER appuser
 
