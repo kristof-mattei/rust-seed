@@ -90,6 +90,7 @@ COPY ./crates/ ./crates/
 # ensure cargo picks up on the fact that we copied in our code
 RUN find ./crates/ -type f -name '*.rs' -exec touch {} +
 
+# silence cargo warning about `/output/bin` not being in path
 ENV PATH="/output/bin:$PATH"
 
 # --release not needed, it is implied with install
