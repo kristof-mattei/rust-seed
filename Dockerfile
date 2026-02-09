@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv,error=true
+
 # Rust toolchain setup
 FROM --platform=${BUILDPLATFORM} rust:1.93.0-slim-trixie@sha256:760ad1d638d70ebbd0c61e06210e1289cbe45ff6425e3ea6e01241de3e14d08e AS rust-base
 
@@ -25,9 +28,13 @@ ARG TARGET=aarch64-unknown-linux-musl
 
 FROM rust-linux-${TARGETARCH} AS rust-cargo-build
 
-ARG DEBIAN_FRONTEND=noninteractive
-# expose into `build.sh`
+ARG TARGETARCH
+ARG TARGETOS
+ARG TARGETPLATFORM
+# used by `build.sh`
 ARG TARGETVARIANT
+
+ARG TARGETPLATFORMDASH="${TARGETOS}-${TARGETARCH}-${TARGETVARIANT:-base}"
 
 COPY ./build-scripts /build-scripts
 
@@ -66,21 +73,20 @@ WORKDIR /build
 # both target platforms. It doesn't matter, as after unlocking the other one
 # just validates, but doesn't need to download anything
 RUN --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
+    --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
-    cargo fetch
+    /build-scripts/build.sh fetch --locked
 
-RUN --mount=type=cache,target=/build/target/${TARGET},sharing=locked \
-    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
-    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
-    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
-    /build-scripts/build.sh build --release --target-dir ./target/${TARGET}
+RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=/build/target/${TARGETPLATFORMDASH},sharing=locked \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
+    --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
+    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
+    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
+    /build-scripts/build.sh build --release --target-dir "./target/${TARGETPLATFORMDASH}" --frozen
 
 # Rust full build
 FROM rust-cargo-build AS rust-build
-
-# to expose into `build.sh`
-ARG TARGETVARIANT
 
 WORKDIR /build
 
@@ -93,11 +99,12 @@ RUN find ./crates -type f -name '*.rs' -exec touch {} +
 ENV PATH="/output/bin:$PATH"
 
 # --release not needed, it is implied with install
-RUN --mount=type=cache,target=/build/target/${TARGET},sharing=locked \
-    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
-    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
-    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
-    /build-scripts/build.sh install --path ./crates/${APPLICATION_NAME}/ --locked --target-dir ./target/${TARGET} --root /output
+RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=/build/target/${TARGETPLATFORMDASH},sharing=locked \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
+    --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
+    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
+    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
+    /build-scripts/build.sh install --path "./crates/${APPLICATION_NAME}/" --target-dir "./target/${TARGETPLATFORMDASH}" --root /output --frozen
 
 # Container user setup
 FROM --platform=${BUILDPLATFORM} alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659 AS passwd-build
