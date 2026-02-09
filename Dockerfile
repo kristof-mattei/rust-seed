@@ -29,7 +29,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # expose into `build.sh`
 ARG TARGETVARIANT
 
-COPY ./build-scripts /build-scripts
+COPY ./build-scripts/ /build-scripts/
 
 RUN --mount=type=cache,id=apt-cache-${TARGET},from=rust-base,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lib-${TARGET},from=rust-base,target=/var/lib/apt,sharing=locked \
@@ -42,7 +42,7 @@ RUN rustup target add ${TARGET}
 # This allows us to copy in the source in a different layer which in turn allows us to leverage Docker's layer caching
 # That means that if our dependencies don't change rebuilding is much faster
 WORKDIR /build
-COPY ./.cargo ./.cargo
+COPY ./.cargo/ ./.cargo/
 COPY ./Cargo.toml ./Cargo.lock ./
 
 # main crate
@@ -85,10 +85,10 @@ ARG TARGETVARIANT
 WORKDIR /build
 
 # now we copy in the source which is more prone to changes and build it
-COPY ./crates ./crates
+COPY ./crates/ ./crates/
 
 # ensure cargo picks up on the fact that we copied in our code
-RUN find ./crates -type f -name '*.rs' -exec touch {} +
+RUN find ./crates/ -type f -name '*.rs' -exec touch {} +
 
 ENV PATH="/output/bin:$PATH"
 
