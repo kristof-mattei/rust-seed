@@ -74,16 +74,14 @@ WORKDIR /build
 # both target platforms. It doesn't matter, as after unlocking the other one
 # just validates, but doesn't need to download anything
 RUN --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
-    --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
     /build-scripts/build.sh fetch --locked
 
 RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=${CARGO_TARGET_DIR},sharing=locked \
-    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
-    --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
-    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
-    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
+    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
+    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
     /build-scripts/build.sh build --release --frozen
 
 # Rust full build
@@ -101,10 +99,9 @@ ENV PATH="/output/bin:$PATH"
 
 # --release not needed, it is implied with install
 RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=${CARGO_TARGET_DIR},sharing=locked \
-    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
-    --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
-    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
-    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
+    --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
+    --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
     /build-scripts/build.sh install --path "./crates/${APPLICATION_NAME}/" --root /output --frozen
 
 # Container user setup
