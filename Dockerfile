@@ -83,7 +83,7 @@ RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=${CARGO_TARGET_DIR
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache \
-    /build-scripts/build.sh build --release
+    /build-scripts/build.sh build --release --locked
 
 # Rust full build
 FROM rust-cargo-build AS rust-build
