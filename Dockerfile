@@ -35,6 +35,7 @@ ARG TARGETPLATFORM
 ARG TARGETVARIANT
 
 ARG TARGETPLATFORMDASH="${TARGETOS}-${TARGETARCH}-${TARGETVARIANT:-base}"
+ARG CARGO_TARGET_DIR=/build/target/${TARGETPLATFORMDASH}
 
 COPY ./build-scripts /build-scripts
 
@@ -78,12 +79,12 @@ RUN --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locke
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
     /build-scripts/build.sh fetch --locked
 
-RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=/build/target/${TARGETPLATFORMDASH},sharing=locked \
+RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=${CARGO_TARGET_DIR},sharing=locked \
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
     --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
-    /build-scripts/build.sh build --release --target-dir "./target/${TARGETPLATFORMDASH}" --frozen
+    /build-scripts/build.sh build --release --frozen
 
 # Rust full build
 FROM rust-cargo-build AS rust-build
@@ -99,12 +100,12 @@ RUN find ./crates -type f -name '*.rs' -exec touch {} +
 ENV PATH="/output/bin:$PATH"
 
 # --release not needed, it is implied with install
-RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=/build/target/${TARGETPLATFORMDASH},sharing=locked \
+RUN --mount=type=cache,id=target-${TARGETPLATFORMDASH},target=${CARGO_TARGET_DIR},sharing=locked \
     --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db,sharing=locked \
     --mount=type=cache,id=cargo-git-checkouts,target=/usr/local/cargo/git/checkouts,sharing=locked \
     --mount=type=cache,id=cargo-registry-index,target=/usr/local/cargo/registry/index,sharing=locked \
     --mount=type=cache,id=cargo-registry-cache,target=/usr/local/cargo/registry/cache,sharing=locked \
-    /build-scripts/build.sh install --path "./crates/${APPLICATION_NAME}/" --target-dir "./target/${TARGETPLATFORMDASH}" --root /output --frozen
+    /build-scripts/build.sh install --path "./crates/${APPLICATION_NAME}/" --root /output --frozen
 
 # Container user setup
 FROM --platform=${BUILDPLATFORM} alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659 AS passwd-build
