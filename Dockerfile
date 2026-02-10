@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
 # check=skip=SecretsUsedInArgOrEnv,error=true
 
 # Rust toolchain setup
@@ -28,12 +28,13 @@ ARG TARGET=aarch64-unknown-linux-musl
 
 FROM rust-linux-${TARGETARCH} AS rust-cargo-build
 
+# amd64 or arm64
 ARG TARGETARCH
+# linux or ...
 ARG TARGETOS
-ARG TARGETPLATFORM
-# used by `build.sh`
+# used by `build.sh`, v2, v3 or empty
 ARG TARGETVARIANT
-
+# like TARGETPLATFORM, but with dashes
 ARG TARGETPLATFORMDASH="${TARGETOS}-${TARGETARCH}-${TARGETVARIANT:-base}"
 ARG CARGO_TARGET_DIR=/build/target/${TARGETPLATFORMDASH}
 
