@@ -587,7 +587,7 @@ jobs:
       - docker-publish
       - docker-attest
     if: |
-      !cancelled()
+      always()
     steps:
       - name: Fail!
         shell: bash
