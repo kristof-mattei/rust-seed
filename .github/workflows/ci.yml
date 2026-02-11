@@ -87,12 +87,18 @@ jobs:
         with:
           show-progress: false
 
-      - name: Check if we actually made changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        id: filter
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          filters: .github/file-filters.yml
+      - name: Crash
+        shell: bash
+        id: version
+        run: |
+          exit 1
+
+      # - name: Check if we actually made changes
+      #   uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      #   id: filter
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     filters: .github/file-filters.yml
 
   calculate-version:
     name: Calculate version
