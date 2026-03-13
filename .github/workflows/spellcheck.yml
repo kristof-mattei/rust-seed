@@ -115,7 +115,7 @@ jobs:
       - name: Install cargo-spellcheck to check the spelling
         uses: taiki-e/install-action@5ab5d1729c22acd8f798b267eadcfe5e5be6f5c2 # v2.68.27
         with:
-          tool: cargo-spellcheck@0.15.7
+          tool: cargo-spellcheck
 
       - name: Run cargo-spellcheck
         run: |
