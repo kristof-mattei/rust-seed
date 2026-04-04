@@ -48,6 +48,9 @@ fn main() -> Result<(), eyre::Report> {
     println!("{}", foo());
     println!("{}", bar());
     println!("{}", quz());
+    println!("{}", foo());
+    println!("{}", bar());
+    println!("{}", quz());
 
     i_will_error()
 }
