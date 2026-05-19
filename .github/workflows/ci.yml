@@ -479,7 +479,7 @@ jobs:
           source="docker://${{ needs.docker-prepare-variables.outputs.full_image_name_local_registry }}:${{ needs.docker-prepare-variables.outputs.unique_tag }}"
 
           while IFS= read -r tag; do
-            skopeo copy --all --preserve-digests --src-tls-verify=false --command-timeout 70s --retry-times 5 "${source}" "docker://${tag}"
+            skopeo copy --all --preserve-digests --src-tls-verify=false --command-timeout 5m --retry-times 5 "${source}" "docker://${tag}"
           done <<< "${{ steps.meta.outputs.tags }}"
 
       - name: Inspect new remote tags
@@ -488,7 +488,7 @@ jobs:
           while IFS= read -r new_tag; do
             echo "Inspecting ${new_tag}:"
 
-            skopeo inspect --raw --command-timeout 70s --retry-times 5 "docker://${new_tag}"
+            skopeo inspect --raw --command-timeout 5m --retry-times 5 "docker://${new_tag}"
 
             # empty to get newline
             echo ""
