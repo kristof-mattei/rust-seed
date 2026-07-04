@@ -556,27 +556,28 @@ jobs:
           subject-digest: ${{ needs.docker-publish.outputs.digest }}
           push-to-registry: true
 
-      - name: Docker Scout Compare (linux/amd64)
-        uses: docker/scout-action@2688993af7bafd6ba8c6a74ec652442be91dd82b # v1.23.1
-        with:
-          command: compare
-          image: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:pr-${{ github.event.pull_request.number }}-latest"
-          platform: linux/amd64
-          to: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:edge"
-          dockerhub-user: ${{ vars.DOCKERHUB_USERNAME }}
-          dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
-          organization: ${{ vars.DOCKERHUB_USERNAME }}
+      - parallel:
+          - name: Docker Scout Compare (linux/amd64)
+            uses: docker/scout-action@2688993af7bafd6ba8c6a74ec652442be91dd82b # v1.23.1
+            with:
+              command: compare
+              image: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:pr-${{ github.event.pull_request.number }}-latest"
+              platform: linux/amd64
+              to: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:edge"
+              dockerhub-user: ${{ vars.DOCKERHUB_USERNAME }}
+              dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+              organization: ${{ vars.DOCKERHUB_USERNAME }}
 
-      - name: Docker Scout Compare (linux/arm64)
-        uses: docker/scout-action@2688993af7bafd6ba8c6a74ec652442be91dd82b # v1.23.1
-        with:
-          command: compare
-          image: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:pr-${{ github.event.pull_request.number }}-latest"
-          platform: linux/arm64
-          to: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:edge"
-          dockerhub-user: ${{ vars.DOCKERHUB_USERNAME }}
-          dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
-          organization: ${{ vars.DOCKERHUB_USERNAME }}
+          - name: Docker Scout Compare (linux/arm64)
+            uses: docker/scout-action@2688993af7bafd6ba8c6a74ec652442be91dd82b # v1.23.1
+            with:
+              command: compare
+              image: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:pr-${{ github.event.pull_request.number }}-latest"
+              platform: linux/arm64
+              to: "${{ needs.docker-prepare-variables.outputs.full_image_name_remote_registry }}:edge"
+              dockerhub-user: ${{ vars.DOCKERHUB_USERNAME }}
+              dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+              organization: ${{ vars.DOCKERHUB_USERNAME }}
 
   all-done:
     name: All done
