@@ -63,10 +63,6 @@ jobs:
 
           cargo --version
 
-      - &set_up_sccache
-        name: Set up sccache
-        uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
-
       - name: Fetch
         shell: bash
         run: |
@@ -119,7 +115,9 @@ jobs:
 
       - *set_up_toolchain
 
-      - *set_up_sccache
+      - &set_up_sccache
+        name: Set up sccache
+        uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
       - name: Build
         shell: bash
