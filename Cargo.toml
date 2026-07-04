@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.0.0-development"
 edition = "2024"
-rust-version = "1.95.0"
+rust-version = "1.96.1"
 authors = ["Kristof Mattei"]
 description = "Rust seed application"
 license = "MIT"
@@ -38,8 +38,7 @@ allow_attributes_without_reason = { level = "deny", priority = 127 }
 # arbitrary_source_item_ordering = { level = "deny", priority = 127 }
 # Debatable
 # arithmetic_side_effects = { level = "deny", priority = 127 }
-# Debatable, the ones below deny more specific occurences
-# as_conversions = { level = "deny", priority = 127 }
+as_conversions = { level = "deny", priority = 127 }
 as_pointer_underscore = { level = "deny", priority = 127 }
 as_underscore = { level = "deny", priority = 127 }
 assertions_on_result_states = { level = "deny", priority = 127 }

@@ -9,6 +9,7 @@ permissions:
 
 env:
   CARGO_FEATURES: --all-features
+  CARGO_INCREMENTAL: "0"
   CARGO_TERM_COLOR: always
   RUSTFLAGS: --deny=warnings
   RUSTC_WRAPPER: "sccache"
@@ -21,12 +22,12 @@ jobs:
     steps:
       - &checkout
         name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           show-progress: false
 
       - name: Cache cargo
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         env:
           CACHE_NAME: cargo
         with:
@@ -37,15 +38,11 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-          key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-warm-up-cache
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-warm-up-cache
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
-
-      - &set_up_mold
-        name: Set up mold
-        uses: rui314/setup-mold@9c9c13bf4c3f1adef0cc596abc155580bcb04444 # v1
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CACHE_NAME }}-
 
       - &set_up_toolchain
         name: Set up toolchain
@@ -83,7 +80,7 @@ jobs:
       - *checkout
 
       - name: Check if we actually made changes
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: filter
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -99,10 +96,12 @@ jobs:
 
       - &cache_cargo
         name: Cache cargo
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         env:
           CACHE_NAME: cargo
         with:
+          # we want to fail if `warm-up-cache` fails
+          fail-on-cache-miss: true
           path: |
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
@@ -110,25 +109,13 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-          key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-warm-up-cache
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-warm-up-cache
 
-      - *set_up_mold
+      - &set_up_mold
+        name: Set up mold
+        uses: rui314/setup-mold@9c9c13bf4c3f1adef0cc596abc155580bcb04444 # v1
 
       - *set_up_toolchain
-
-      - &cache_target
-        name: Cache target
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        env:
-          CACHE_NAME: target
-        with:
-          path: |
-            ./target
-          key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-${{ github.job }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-${{ github.workflow }}-
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-${{ hashFiles('Cargo.lock') }}-
-            ${{ runner.os }}-${{ runner.arch }}-build-${{ env.CACHE_NAME }}-
 
       - *set_up_sccache
 
@@ -148,8 +135,6 @@ jobs:
       fromJSON(needs.changes.outputs.rust) == true
     steps:
       - *checkout
-
-      - *cache_cargo
 
       - *set_up_toolchain
 
@@ -185,8 +170,6 @@ jobs:
 
       - *set_up_toolchain
 
-      - *cache_target
-
       - *set_up_sccache
 
       - name: Install llvm-tools
@@ -198,7 +181,7 @@ jobs:
           rustup update
 
       - name: Install nextest, custom test runner, with native support for junit and grcov
-        uses: taiki-e/install-action@213ccc1a076163c093f914550b94feb90fab916d # v2.79.2
+        uses: taiki-e/install-action@c93ccc03e00cd0e08e494f5fd058a6c55a6a1907 # v2.82.8
         with:
           tool: cargo-nextest, grcov
 
@@ -222,7 +205,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload test results
-        uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         with:
           check_name: Test results for Rust
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -252,7 +235,7 @@ jobs:
           echo "RUST=$(rustc --version)" >> "$GITHUB_ENV"
 
       - name: Upload coverage results (to Codecov.io)
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           disable_search: true
           disable_telem: true
@@ -266,7 +249,7 @@ jobs:
           use_oidc: true
 
       - name: Upload test results (to Codecov.io)
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           disable_search: true
           disable_telem: true
@@ -308,8 +291,6 @@ jobs:
       - *set_up_mold
 
       - *set_up_toolchain
-
-      - *cache_target
 
       - *set_up_sccache
 
