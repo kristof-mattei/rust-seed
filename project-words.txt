@@ -32,6 +32,7 @@ retag
 retagging
 rustflags
 samply
+sarif
 sccache
 skopeo
 startswith
