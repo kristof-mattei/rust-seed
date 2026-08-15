@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Rebuild release
+
+# Two things make an open release PR stale:
+# - toggling `changelog: show` on a merged PR changes what it ships
+# - any merge to main puts it behind, and the up-to-date rule then blocks merging until it is re-cut
+# Re-running Release re-reads the labels and rebuilds the release branch and PR body against current main.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+
+permissions:
+  actions: write # to dispatch the Release workflow
+  pull-requests: read # to find the open release PR
+
+jobs:
+  rebuild:
+    name: Rebuild release
+    runs-on: ubuntu-26.04
+    if: "github.event_name == 'push' || github.event.label.name == 'changelog: show'"
+    steps:
+      - name: Dispatch the Release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch=$(gh pr list --repo "${GITHUB_REPOSITORY}" --base main --state open --json headRefName \
+            --jq '[.[].headRefName | select(startswith("release/v"))] | first // empty')
+
+          if [ -z "${branch}" ]; then
+            echo "::notice::No open release PR, nothing to rebuild"
+            exit 0
+          fi
+
+          # Reproduce the open release's pre-release type so the dispatch rebuilds the same branch
+          if [[ "${branch}" =~ -(alpha|beta|rc)\.[0-9]+$ ]]; then
+            prerelease="${BASH_REMATCH[1]}"
+          else
+            prerelease="none"
+          fi
+
+          # workflow_dispatch is exempt from the GITHUB_TOKEN no-retrigger rule
+          gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref main --field "prerelease=${prerelease}"
+
+          echo "::notice::Dispatched Release to rebuild ${branch}"

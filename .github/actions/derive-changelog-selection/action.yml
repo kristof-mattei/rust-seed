@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Derive changelog selection
+description: "Derive the .cliffignore contents and the hidden-PR list from `changelog: show` labels"
+
+inputs:
+  head:
+    description: Tip of the release range, the latest tag reachable from it starts the range
+    required: false
+    default: HEAD
+
+outputs:
+  selection-file:
+    description: Path to the derived .cliffignore contents, every unreleased commit except shown PRs' merge commits
+    value: ${{ steps.derive.outputs.selection-file }}
+  hidden-file:
+    description: "Path to the markdown list of in-range PRs not labeled `changelog: show`"
+    value: ${{ steps.derive.outputs.hidden-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Derive selection
+      id: derive
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        HEAD_REF: ${{ inputs.head }}
+      run: |
+        # Every unreleased commit starts hidden. A `changelog: show` label on a PR reveals its merge commit, whose message is the PR title, so the changelog gets one entry per shown PR.
+        latest_tag=$(git describe --tags --abbrev=0 "${HEAD_REF}" 2> /dev/null || true)
+
+        cutoff=0
+        if [ -n "${latest_tag}" ]; then
+          git rev-list "${latest_tag}..${HEAD_REF}" > "${RUNNER_TEMP}/unreleased.txt"
+          cutoff=$(git log --max-count=1 --format=%ct "${latest_tag}")
+        else
+          git rev-list "${HEAD_REF}" > "${RUNNER_TEMP}/unreleased.txt"
+        fi
+
+        # REST list instead of `gh pr list`, whose search backend caps at 1000 results. Membership of the merge commit in the unreleased range decides which PRs count.
+        # Sorted by update time so pagination can stop early: updated_at >= merged_at, so once a page's oldest update predates the tag, no later page can hold an in-range PR.
+        : > "${RUNNER_TEMP}/prs.jsonl"
+        page=1
+        while true; do
+          gh api "repos/{owner}/{repo}/pulls?state=closed&base=main&per_page=100&sort=updated&direction=desc&page=${page}" \
+            --jq '.[] | {number, title, merge_commit_sha, merged_at, updated_at, labels: [.labels[].name]}' \
+            > "${RUNNER_TEMP}/page.jsonl"
+
+          cat "${RUNNER_TEMP}/page.jsonl" >> "${RUNNER_TEMP}/prs.jsonl"
+
+          if [ "$(wc --lines < "${RUNNER_TEMP}/page.jsonl")" -lt 100 ]; then
+            break
+          fi
+
+          oldest=$(tail --lines=1 "${RUNNER_TEMP}/page.jsonl" | jq '.updated_at | fromdate')
+          if [ "${oldest}" -lt "${cutoff}" ]; then
+            break
+          fi
+
+          page=$(( page + 1 ))
+        done
+
+        # unique_by drops PRs fetched twice when an update shifts pages mid-pagination
+        jq --slurp --rawfile unreleased "${RUNNER_TEMP}/unreleased.txt" '
+            ($unreleased | split("\n") | map(select(length > 0)) | map({key: ., value: true}) | from_entries) as $shas
+            | unique_by(.number)
+            | map(select(.merged_at != null and $shas[.merge_commit_sha] == true))
+          ' "${RUNNER_TEMP}/prs.jsonl" > "${RUNNER_TEMP}/in-range-prs.json"
+
+        jq --raw-output 'map(select(.labels | any(. == "changelog: show"))) | .[].merge_commit_sha' \
+          "${RUNNER_TEMP}/in-range-prs.json" > "${RUNNER_TEMP}/shown.txt"
+
+        jq --raw-output 'map(select(.labels | any(. == "changelog: show") | not)) | sort_by(.number) | .[] | "- \(.title) (#\(.number))"' \
+          "${RUNNER_TEMP}/in-range-prs.json" > "${RUNNER_TEMP}/hidden.md"
+
+        grep --fixed-strings --line-regexp --invert-match --file "${RUNNER_TEMP}/shown.txt" "${RUNNER_TEMP}/unreleased.txt" > "${RUNNER_TEMP}/selection.txt" || true
+
+        echo "selection-file=${RUNNER_TEMP}/selection.txt" >> "${GITHUB_OUTPUT}"
+        echo "hidden-file=${RUNNER_TEMP}/hidden.md" >> "${GITHUB_OUTPUT}"
