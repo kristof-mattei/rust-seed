@@ -1,0 +1,2 @@
+# Merge commits queued to appear in the next release's changelog. Everything else in the release range is hidden.
+# Filled by .github/workflows/changelog-selection.yml from the `changelog: show` label, drained by the release commit.

@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      # Changelog curation touches no code, and it lands on main as its own commit
+      - .changelog-shown
   pull_request:
     branches:
       - main

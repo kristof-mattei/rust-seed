@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Changelog selection
+
+# A `changelog: show` label stays editable forever, the release commit is immutable, so reading the labels at release time can never
+# agree with the commit for longer than the gap between the two. Writing the label's effect into `.changelog-shown` on main at merge
+# time makes the release commit a pure function of main, which the up-to-date rule already keeps in step with the release branch.
+
+on:
+  # pull_request_target runs the workflow file from main, so a toggle reaches this job on PRs merged before it existed, and its token stays writable on forks
+  pull_request_target:
+    types:
+      - closed
+      - labeled
+      - unlabeled
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  select:
+    name: Changelog selection
+    runs-on: ubuntu-26.04
+    # `closed` covers a label applied during review, the label events cover one applied or removed after the merge
+    if: >-
+      github.event.pull_request.merged == true &&
+      (
+        (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'changelog: show')) ||
+        github.event.label.name == 'changelog: show'
+      )
+    steps:
+      - name: Update the changelog queue
+        shell: bash
+        env:
+          # The ruleset requires a pull request for changes to main and GITHUB_TOKEN is not a bypass actor, the PAT's owner is
+          GH_TOKEN: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          # Fork pull request titles are attacker-controlled, keep them out of the script text
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          SHOWN: "${{ contains(github.event.pull_request.labels.*.name, 'changelog: show') }}"
+        run: |
+          path=".changelog-shown"
+
+          # The blob SHA is the optimistic lock, so merges landing together retry instead of overwriting each other
+          for attempt in 1 2 3 4 5; do
+            response=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main")
+
+            blob_sha=$(jq --raw-output '.sha' <<< "${response}")
+            jq --raw-output '.content' <<< "${response}" | base64 --decode > "${RUNNER_TEMP}/current"
+
+            # Anchored, so a title that happens to contain a SHA cannot drop another pull request's line
+            grep --invert-match --extended-regexp "^${MERGE_SHA} " "${RUNNER_TEMP}/current" > "${RUNNER_TEMP}/next" || true
+
+            if [ "${SHOWN}" = "true" ]; then
+              printf '%s # %s (#%s)\n' "${MERGE_SHA}" "${PR_TITLE}" "${PR_NUMBER}" >> "${RUNNER_TEMP}/next"
+              message="chore(changelog): show #${PR_NUMBER}"
+            else
+              message="chore(changelog): hide #${PR_NUMBER}"
+            fi
+
+            if cmp --silent "${RUNNER_TEMP}/current" "${RUNNER_TEMP}/next"; then
+              echo "::notice::${path} already matches the label"
+              exit 0
+            fi
+
+            base64 --wrap=0 "${RUNNER_TEMP}/next" > "${RUNNER_TEMP}/next.base64"
+
+            if gh api --method PUT --silent "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+              --raw-field message="${message}" \
+              --raw-field branch=main \
+              --raw-field sha="${blob_sha}" \
+              --field content=@"${RUNNER_TEMP}/next.base64"; then
+              echo "::notice::${message}"
+              exit 0
+            fi
+
+            echo "::notice::${path} moved under attempt ${attempt}, retrying"
+            sleep "$(( attempt * 3 ))"
+          done
+
+          echo "::error::Could not update ${path}, re-run this workflow"
+          exit 1

@@ -13,13 +13,10 @@ on:
           - alpha
           - beta
           - rc
-      auto_merge:
-        description: "Enable auto-merge on the release PR"
-        type: boolean
-        default: false
 
 concurrency:
-  group: "${{ github.workflow }}-${{ inputs.prerelease }}"
+  # Label toggles dispatch this workflow too; stacked dispatches collapse to one running plus the newest queued run
+  group: release
   cancel-in-progress: false # this job force-pushes branches and opens PRs, let it finish
 
 permissions:
@@ -54,17 +51,15 @@ jobs:
         with:
           tool: git-cliff
 
-      - name: Compute version, generate changelog, create branch and open PR
+      - name: Compute version
         shell: bash
         id: release
         env:
-          # GITHUB_TOKEN attributes the API commit to github-actions[bot].
-          # But we push the branch using the checkout PAT so workflows trigger.
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # git-cliff reads GITHUB_TOKEN from the environment
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           latest_tag=$(git describe --tags --abbrev=0 || true)
+          echo "latest_tag=${latest_tag}" >> "${GITHUB_OUTPUT}"
 
           prerelease="${{ inputs.prerelease }}"
 
@@ -160,85 +155,124 @@ jobs:
           echo "branch=$branch" >> "${GITHUB_OUTPUT}"
 
           commit_message="chore(release): prepare for ${release_version}"
-
-          git-cliff --output CHANGELOG.md --tag "${release_version}"
+          echo "commit_message=${commit_message}" >> "${GITHUB_OUTPUT}"
 
           main_sha=$(git rev-parse HEAD)
+          echo "main_sha=${main_sha}" >> "${GITHUB_OUTPUT}"
 
-          # Stage the commit on a scratch branch so the release branch moves
-          # only once, straight to the finished commit
-          staging_branch="${branch}-staging"
+      - name: Derive the changelog selection
+        shell: bash
+        id: selection
+        env:
+          LATEST_TAG: ${{ steps.release.outputs.latest_tag }}
+        run: |
+          range="${LATEST_TAG:+${LATEST_TAG}..}HEAD"
 
-          git push --force origin "${main_sha}:refs/heads/${staging_branch}"
+          grep --invert-match --extended-regexp '^(#|[[:space:]]*$)' .changelog-shown > "${RUNNER_TEMP}/queued.txt" || true
+          cut --delimiter=" " --fields=1 < "${RUNNER_TEMP}/queued.txt" > "${RUNNER_TEMP}/shown.txt"
 
-          # Commit via createCommitOnBranch. Commits created via the API are signed by GitHub.
-          base64 --wrap=0 CHANGELOG.md > changelog.base64
+          git rev-list "${range}" > "${RUNNER_TEMP}/unreleased.txt"
 
-          query=$(cat <<'GRAPHQL'
-            mutation ($repositoryNameWithOwner: String!, $branchName: String!, $expectedHeadOid: GitObjectID!, $headline: String!, $contents: Base64String!) {
-              createCommitOnBranch(
-                input: {
-                  branch: { repositoryNameWithOwner: $repositoryNameWithOwner, branchName: $branchName }
-                  expectedHeadOid: $expectedHeadOid
-                  message: { headline: $headline }
-                  fileChanges: { additions: [{ path: "CHANGELOG.md", contents: $contents }] }
-                }
-              ) {
-                commit {
-                  oid
-                }
-              }
-            }
-          GRAPHQL
-          )
+          # An empty pattern file matches nothing, so an empty queue hides the whole range
+          grep --fixed-strings --line-regexp --invert-match --file "${RUNNER_TEMP}/shown.txt" "${RUNNER_TEMP}/unreleased.txt" > .cliffignore || true
 
-          release_sha=$(gh api graphql \
-            --raw-field query="${query}" \
-            --raw-field repositoryNameWithOwner="${GITHUB_REPOSITORY}" \
-            --raw-field branchName="${staging_branch}" \
-            --raw-field expectedHeadOid="${main_sha}" \
-            --raw-field headline="${commit_message}" \
-            --field contents=@changelog.base64 \
-            --jq '.data.createCommitOnBranch.commit.oid')
+          # Merge commit subjects are pull request titles, so listing what stays hidden costs no API call
+          git log --merges --format="%H %s" "${range}" > "${RUNNER_TEMP}/merges.txt"
+          grep --fixed-strings --invert-match --file "${RUNNER_TEMP}/shown.txt" "${RUNNER_TEMP}/merges.txt" > "${RUNNER_TEMP}/hidden.txt" || true
+          sed --regexp-extended 's/^[0-9a-f]+ /- /' "${RUNNER_TEMP}/hidden.txt" > "${RUNNER_TEMP}/hidden.md"
 
-          echo "::notice::Release commit: ${release_sha}"
+          echo "hidden-file=${RUNNER_TEMP}/hidden.md" >> "${GITHUB_OUTPUT}"
 
-          # The commit only exists server-side, fetch it so we can push its SHA
-          git fetch origin "refs/heads/${staging_branch}"
+          # The queue drains with the release commit, .cliffignore at the tag becomes the record of what this release hid
+          grep --extended-regexp '^#' .changelog-shown > "${RUNNER_TEMP}/drained" || true
+          mv "${RUNNER_TEMP}/drained" .changelog-shown
 
-          # Create or reset the release branch to the signed commit
-          git push --force origin "${release_sha}:refs/heads/${branch}"
+      - name: Generate the changelog
+        shell: bash
+        env:
+          # git-cliff reads GITHUB_TOKEN from the environment
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release.outputs.release_version }}
+          # Without this a queued commit that isn't conventional renders as nothing at all. .cliffignore is applied first, so
+          # only the queued commits have to satisfy it, and a bad merge commit message fails the release instead of vanishing.
+          GIT_CLIFF__GIT__REQUIRE_CONVENTIONAL: "true"
+        run: |
+          # Prepend only the new section, the history below it is frozen text.
+          # git-cliff skips the commits listed in .cliffignore, so only queued entries render.
+          git-cliff --unreleased --tag "${RELEASE_VERSION}" --prepend CHANGELOG.md
 
-          git push origin --delete "${staging_branch}"
+      - name: Create release commit
+        id: commit
+        uses: ./.github/actions/create-release-commit
+        with:
+          branch: ${{ steps.release.outputs.branch }}
+          base-sha: ${{ steps.release.outputs.main_sha }}
+          headline: ${{ steps.release.outputs.commit_message }}
+          files: CHANGELOG.md .cliffignore .changelog-shown
+          # GITHUB_TOKEN attributes the API commit to github-actions[bot]. The branch itself is pushed with the checkout PAT so workflows trigger.
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-          # Build the PR-body changelog from a context whose compare-link target
-          # is the release-branch head SHA, because the ${release_version} tag
-          # doesn't exist until after this PR is merged.
-          git-cliff --context --unreleased --tag "${release_version}" \
-            | jq --arg sha "${release_sha}" '.[0].extra = {compare_to: $sha}' \
-            > diff-context.json
+      - name: Render the release PR body
+        shell: bash
+        id: body
+        env:
+          # git-cliff reads GITHUB_TOKEN from the environment
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release.outputs.release_version }}
+          RELEASE_SHA: ${{ steps.commit.outputs.commit-sha }}
+          HIDDEN_FILE: ${{ steps.selection.outputs.hidden-file }}
+        run: |
+          # Point the compare link at the release-branch head SHA, because the release tag doesn't exist until after the PR is merged
+          git-cliff --context --unreleased --tag "${RELEASE_VERSION}" \
+            | jq --arg sha "${RELEASE_SHA}" '.[0].extra = {compare_to: $sha}' \
+            > "${RUNNER_TEMP}/diff-context.json"
 
-          git-cliff --from-context diff-context.json --output diff-CHANGELOG.md
+          git-cliff --from-context "${RUNNER_TEMP}/diff-context.json" --output "${RUNNER_TEMP}/shown.md"
+
+          body_file="${RUNNER_TEMP}/body.md"
+
+          {
+          cat <<'NOTE'
+          > [!NOTE]
+          > The entries below ship in `CHANGELOG.md` and the release notes. Label a PR `changelog: show` to add it, unlabel to remove it, this PR rebuilds automatically.
+          > Hidden PRs still ship in the release and still count toward the version number.
+
+          NOTE
+          cat "${RUNNER_TEMP}/shown.md"
+          echo
+          echo "---"
+          echo
+          echo "### Hidden from the changelog"
+          echo
+          if [ -s "${HIDDEN_FILE}" ]; then
+            cat "${HIDDEN_FILE}"
+          else
+            echo "Nothing is hidden."
+          fi
+          } > "${body_file}"
+
+          # Truncate if the body exceeds GitHub's PR body character limit
+          max_length=65536
+          truncation_message=$'\n\n---\n\n> **Note:** Body was truncated because it exceeded GitHub'"'"'s 65,536 character limit.'
+          file_length=$(wc --chars < "${body_file}")
+
+          if [ "${file_length}" -gt "${max_length}" ]; then
+            truncated_length=$(( max_length - ${#truncation_message} ))
+            TRUNC="${truncated_length}" perl -CSD -0777 -pe '$_ = substr($_, 0, $ENV{TRUNC})' "${body_file}" > "${body_file}.truncated"
+            printf '%s' "${truncation_message}" >> "${body_file}.truncated"
+            mv "${body_file}.truncated" "${body_file}"
+          fi
+
+          echo "body-file=${body_file}" >> "${GITHUB_OUTPUT}"
 
       - name: Open or update pull request
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
+          BODY_FILE: ${{ steps.body.outputs.body-file }}
         run: |
           branch="${{ steps.release.outputs.branch }}"
           release_version="${{ steps.release.outputs.release_version }}"
-
-          # Truncate diff-CHANGELOG.md if it exceeds GitHub's PR character body limit
-          max_length=65536
-          truncation_message=$'\n\n---\n\n> **Note:** Changelog was truncated because it exceeded GitHub'"'"'s 65,536 character limit.'
-          file_length=$(wc --chars < diff-CHANGELOG.md)
-
-          if [ "$file_length" -gt "$max_length" ]; then
-            truncated_length=$(( max_length - ${#truncation_message} ))
-            TRUNC="$truncated_length" perl -CSD -0777 -pe '$_ = substr($_, 0, $ENV{TRUNC})' diff-CHANGELOG.md > diff-CHANGELOG-truncated.md
-            printf '%s' "$truncation_message" >> diff-CHANGELOG-truncated.md
-            mv diff-CHANGELOG-truncated.md diff-CHANGELOG.md
-          fi
 
           # Check if a PR already exists for this branch
           existing_pr=$(gh pr list --head "${branch}" --state open --json number --jq '.[0].number // empty')
@@ -247,18 +281,28 @@ jobs:
             # gh pr edit needs read:org, even for --body (cli/cli#13575).
             # The REST PATCH works with just the repo scope.
             gh api --method PATCH --silent "repos/${GITHUB_REPOSITORY}/pulls/${existing_pr}" \
-              --field body=@diff-CHANGELOG.md
+              --field "body=@${BODY_FILE}"
           else
+            # Opened with the PAT, the default token's pull_request events don't run the required checks
             gh pr create \
               --base main \
               --head "${branch}" \
               --title "chore(release): Release ${release_version}" \
-              --body-file diff-CHANGELOG.md
+              --body-file "${BODY_FILE}"
           fi
 
-          if [ "${{ inputs.auto_merge }}" = "true" ]; then
-            gh pr merge "${branch}" --auto --merge
-          fi
+          # A commit that changes the bump lands this release on a different branch than the open one, and both would stay
+          # open with nothing to choose between them. Closing runs last, so a failure above leaves the old PR in place.
+          gh pr list --state open --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("release/v")) | "\(.number) \(.headRefName)"' \
+            > "${RUNNER_TEMP}/release-prs.txt"
+
+          while read -r number head_ref; do
+            if [ "${head_ref}" != "${branch}" ]; then
+              echo "::notice::Closing superseded release PR #${number} (${head_ref})"
+              gh pr close "${number}" --delete-branch --comment "Superseded by the release PR for ${release_version}."
+            fi
+          done < "${RUNNER_TEMP}/release-prs.txt"
 
       - name: Clean up stranded branches
         if: ${{ (failure() || cancelled()) && steps.release.outputs.branch != '' }}

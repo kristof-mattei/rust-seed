@@ -13,10 +13,17 @@
     "dictionaries": ["project-words", "bash", "docker", "rust", "rust-crates"],
     "ignorePaths": [
         ".git",
+        ".changelog-shown",
         "CHANGELOG.md",
         "Cargo.lock",
         "cspell.json",
         "pnpm-lock.yaml",
         "project-words.txt"
+    ],
+    "overrides": [
+        {
+            "filename": ".github/settings.yml",
+            "ignoreRegExpList": ["/\"[0-9a-f]{6}\"/i"]
+        }
     ]
 }

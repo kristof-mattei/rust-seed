@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Verify release
+
+# Required check on release PRs:
+# - "Update branch" advances the branch without re-deriving the changelog, and once the release is tagged its pulled-in commits fall outside every future release range, so a merge-commit head fails
+# - an empty changelog section means `.changelog-shown` queued nothing, which is only valid for a promotion release with no new commits
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-26.04
+    # Skipped on non-release PRs, a skipped job still satisfies the required check
+    if: startsWith(github.event.pull_request.head.ref, 'release/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Assert the release commit sits directly on a main commit
+        shell: bash
+        run: |
+          # The Release workflow builds single-parent commits, only "Update branch" puts a merge commit here
+          if git rev-parse --verify --quiet HEAD^2 > /dev/null; then
+            echo "::error::The release branch head is a merge commit. Don't use Update branch, re-run the Release workflow instead."
+            exit 1
+          fi
+
+      - name: Assert the changelog section is not empty
+        shell: bash
+        run: |
+          previous_tag=$(git describe --tags --abbrev=0 "HEAD^" 2> /dev/null || true)
+
+          if [ -n "${previous_tag}" ]; then
+            commits=$(git rev-list --count "${previous_tag}..HEAD^")
+          else
+            commits=$(git rev-list --count "HEAD^")
+          fi
+
+          # A promotion release re-tags the previous content, its section is legitimately empty
+          if [ "${commits}" -eq 0 ]; then
+            echo "::notice::No commits since ${previous_tag}, skipping the empty-changelog check"
+            exit 0
+          fi
+
+          # The pending release is the first `## ` section, prepended above the frozen history
+          entries=$(awk '/^## /{ section++ } section == 1 && /^- /{ count++ } END { print count + 0 }' CHANGELOG.md)
+
+          if [ "${entries}" -lt 1 ]; then
+            echo "::error::The changelog section for this release is empty. Label at least one merged PR with 'changelog: show', the release PR rebuilds automatically."
+            exit 1
+          fi
+
+          echo "::notice::${entries} changelog entries"

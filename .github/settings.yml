@@ -45,6 +45,12 @@ repository:
   # to prevent merging pull requests with merge commits.
   allow_merge_commit: true
 
+  # The default value for a merge commit title: `PR_TITLE` defaults to the pull request's title.
+  merge_commit_title: PR_TITLE
+
+  # The default value for a merge commit message: `BLANK` defaults to a blank commit message.
+  merge_commit_message: BLANK
+
   # Either `true` to allow rebase-merging pull requests, or `false` to prevent
   # rebase-merging.
   allow_rebase_merge: false
@@ -116,6 +122,70 @@ repository:
 #     permission: admin
 #   - name: docs
 #     permission: push
+
+# Every label the repository has must be listed here. The app deletes the ones that aren't, there is no opt-out,
+# so dropping an entry is how you delete a label and forgetting one is how you delete it by accident.
+# Colors are quoted because an all-digit value parses as a number.
+labels:
+  - name: "changelog: show"
+    color: "0e8a16"
+    description: Render this pull request in the changelog and the release notes
+
+  # GitHub's defaults
+  - name: bug
+    color: "d73a4a"
+    description: Something isn't working
+  - name: documentation
+    color: "0075ca"
+    description: Improvements or additions to documentation
+  - name: duplicate
+    color: "cfd3d7"
+    description: This issue or pull request already exists
+  - name: enhancement
+    color: "a2eeef"
+    description: New feature or request
+  - name: good first issue
+    color: "7057ff"
+    description: Good for newcomers
+  - name: help wanted
+    color: "008672"
+    description: Extra attention is needed
+  - name: invalid
+    color: "e4e669"
+    description: This doesn't seem right
+  - name: question
+    color: "d876e3"
+    description: Further information is requested
+  - name: wontfix
+    color: "ffffff"
+    description: This will not be worked on
+
+  # Created by the dependency bot. It recreates one for each new ecosystem it sees, and this file deletes it again on the next sync.
+  - name: dependencies
+    color: "0366d6"
+    description: Pull requests that update a dependency file
+  - name: docker
+    color: "21ceff"
+    description: Pull requests that update Docker code
+  - name: github_actions
+    color: "000000"
+    description: Pull requests that update Github_actions code
+  - name: javascript
+    color: "168700"
+    description: Pull requests that update Javascript code
+  - name: rust
+    color: "000000"
+    description: Pull requests that update Rust code
+  - name: submodules
+    color: "000000"
+    description: Pull requests that update Submodules code
+
+  # Left over from semantic-release, which this repository no longer uses
+  - name: released
+    color: "ededed"
+  - name: semantic-release
+    color: "ededed"
+
 rulesets:
   - name: Main
     target: branch
@@ -156,6 +226,8 @@ rulesets:
             - context: Lint
               integration_id: 15368
             - context: Spellcheck
+              integration_id: 15368
+            - context: Verify release
               integration_id: 15368
       - type: pull_request
         parameters:
