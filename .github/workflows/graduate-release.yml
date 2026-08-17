@@ -48,6 +48,27 @@ jobs:
           show-progress: false
           token: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
 
+      - name: Derive the changelog selection from PR labels
+        id: selection
+        uses: ./.github/actions/derive-changelog-selection
+        with:
+          # The merge commit's first parent is main at merge time, the base the release commit was built on (the up-to-date rule guarantees it)
+          head: ${{ github.event.pull_request.merge_commit_sha }}^1
+
+      - name: Assert the merged selection matches the labels
+        shell: bash
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          SELECTION_FILE: ${{ steps.selection.outputs.selection-file }}
+        run: |
+          git show "${MERGE_SHA}:.cliffignore" > "${RUNNER_TEMP}/merged.cliffignore" 2> /dev/null || true
+
+          if ! cmp --silent "${SELECTION_FILE}" "${RUNNER_TEMP}/merged.cliffignore"; then
+            # The merged commit is immutable, honoring the late toggle means the next release or a hand edit
+            echo "::error::The current labels do not match the merged .cliffignore, a 'changelog: show' toggle raced the merge. Restore the labels to the merged state and re-run this workflow, or accept the merged state and correct CHANGELOG.md afterward."
+            exit 1
+          fi
+
       - name: Create tag
         shell: bash
         env:

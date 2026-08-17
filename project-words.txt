@@ -4,6 +4,7 @@ appuser
 bkeepers
 buildcache
 cinstrument
+cliffignore
 ctarget
 cttc
 cves
@@ -11,6 +12,7 @@ dorny
 endfor
 endmacro
 errorlens
+fromdate
 grcov
 hubot
 idents
@@ -28,12 +30,14 @@ postprocessors
 prereleased
 profraw
 pyflakes
+rawfile
 retag
 retagging
 rustflags
 samply
 sccache
 skopeo
+slurpfile
 startswith
 striptags
 taiki
@@ -44,6 +48,7 @@ topo
 trixie
 TRUNC
 uninlined
+unlabel
 unseparated
 usernamehw
 vadimcn
