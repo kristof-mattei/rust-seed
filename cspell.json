@@ -18,5 +18,11 @@
         "cspell.json",
         "pnpm-lock.yaml",
         "project-words.txt"
+    ],
+    "overrides": [
+        {
+            "filename": ".github/settings.yml",
+            "ignoreRegExpList": ["/\"[0-9a-f]{6}\"/i"]
+        }
     ]
 }

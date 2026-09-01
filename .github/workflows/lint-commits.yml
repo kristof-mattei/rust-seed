@@ -3,6 +3,12 @@ name: Lint commits
 
 on:
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      # the title is linted below, so a retitle has to re-run this
+      - edited
     branches:
       - main
 
@@ -24,6 +30,17 @@ jobs:
     runs-on: ubuntu-26.04
     if: ${{ !startsWith(github.head_ref, 'release/') }}
     steps:
+      - name: Enforce a strict conventional title
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # `merge_commit_title: PR_TITLE` makes this title the subject of the merge commit, which the commit check below skips. The merge dialog can still overwrite the subject, so this is the last automated check on it.
+          if ! grep --quiet --extended-regexp '^[a-z]+(\([a-z0-9-]+\))?!?: .+$' <<< "${PR_TITLE}"; then
+            echo "The title '${PR_TITLE}' does not match '<type>(<scope>)!: <description>' with a lowercase type and scope"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
