@@ -45,6 +45,12 @@ repository:
   # to prevent merging pull requests with merge commits.
   allow_merge_commit: true
 
+  # The default value for a merge commit title: `PR_TITLE` defaults to the pull request's title.
+  merge_commit_title: PR_TITLE
+
+  # The default value for a merge commit message: `BLANK` defaults to a blank commit message.
+  merge_commit_message: BLANK
+
   # Either `true` to allow rebase-merging pull requests, or `false` to prevent
   # rebase-merging.
   allow_rebase_merge: false
