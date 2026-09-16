@@ -181,11 +181,11 @@ jobs:
             GH_TOKEN="${DEFAULT_TOKEN}" gh api --method PATCH --silent "repos/${GITHUB_REPOSITORY}/pulls/${existing_pr}" \
               --field "body=@${BODY_FILE}"
 
+            # Undo the draft set by rebuild-release-after-label.yml. A draft cannot carry auto-merge, so this comes before the disable below.
+            gh pr ready "${existing_pr}"
+
             # GitHub does not disable auto-merge on a push by a collaborator
             GH_TOKEN="${DEFAULT_TOKEN}" gh pr merge "${existing_pr}" --disable-auto
-
-            # Undo the draft set by rebuild-release-after-label.yml
-            gh pr ready "${existing_pr}"
           else
             # Opening the PR with GITHUB_TOKEN would not start the required check workflows, so the PAT is used here
             gh pr create \
