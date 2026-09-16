@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Compare changelog selection
+description: "Compare the entries CHANGELOG.md lists for a release with the merged PRs labeled `changelog: show`"
+
+inputs:
+  tag:
+    description: Tag of the release
+    required: true
+  token:
+    description: Token to list the labeled pull requests with, needs pull-requests:read in a private repository
+    required: true
+
+outputs:
+  entries:
+    description: Number of entries in range
+    value: ${{ steps.compare.outputs.entries }}
+  expected:
+    description: Number of entries in range whose PR is labeled
+    value: ${{ steps.compare.outputs.expected }}
+  matches:
+    description: Whether CHANGELOG.md lists exactly the labeled entries
+    value: ${{ steps.compare.outputs.matches }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compare
+      id: compare
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        git-cliff --context --unreleased --offline --tag "${TAG}" | jq --raw-output '.[0].commits[].id' | sort --unique > "${RUNNER_TEMP}/entries.txt"
+
+        gh pr list --state merged --base main --label "changelog: show" --limit 1000 --json mergeCommit --jq '.[].mergeCommit.oid' | sort --unique > "${RUNNER_TEMP}/shown.txt"
+
+        grep --fixed-strings --line-regexp --file "${RUNNER_TEMP}/shown.txt" "${RUNNER_TEMP}/entries.txt" > "${RUNNER_TEMP}/expected.txt" || true
+
+        # The range bound keeps the sections of earlier releases out of the comparison
+        grep --perl-regexp --only-matching '/commit/\K[0-9a-f]{40}(?=\)\)$)' CHANGELOG.md | grep --fixed-strings --line-regexp --file "${RUNNER_TEMP}/entries.txt" | sort --unique > "${RUNNER_TEMP}/actual.txt" || true
+
+        echo "entries=$(wc --lines < "${RUNNER_TEMP}/entries.txt")" >> "${GITHUB_OUTPUT}"
+        echo "expected=$(wc --lines < "${RUNNER_TEMP}/expected.txt")" >> "${GITHUB_OUTPUT}"
+
+        if cmp --silent "${RUNNER_TEMP}/expected.txt" "${RUNNER_TEMP}/actual.txt"; then
+          echo "matches=true" >> "${GITHUB_OUTPUT}"
+        else
+          echo "matches=false" >> "${GITHUB_OUTPUT}"
+        fi
