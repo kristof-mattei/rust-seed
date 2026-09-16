@@ -21,7 +21,8 @@ jobs:
       actions: write # to dispatch the Release workflow
       pull-requests: read # to list open release PRs and the PR merged by this push
     steps:
-      - name: Dispatch Release for every open release PR
+      - name: Check whether the push merged a release PR
+        id: push
         shell: bash
         env:
           GH_REPO: ${{ github.repository }} # no checkout, so gh cannot infer the repository from a git remote
@@ -34,26 +35,13 @@ jobs:
 
           if [ "${merged_release_prs}" -ne 0 ]; then
             echo "::notice::Release PR merged, nothing to rebuild"
-            exit 0
+            echo "rebuild=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "rebuild=true" >> "${GITHUB_OUTPUT}"
           fi
 
-          # Release's concurrency group is keyed on the pre-release type, so a second dispatch of the same type would just queue.
-          # release/v1.2.3 -> none, release/v1.2.3-alpha.1 -> alpha
-          gh pr list \
-            --state open \
-            --limit 100 \
-            --json headRefName \
-          | jq --raw-output --arg re '-(?<type>alpha|beta|rc)\.[0-9]+$' '
-              [ .[]
-                | select(.headRefName | startswith("release/v"))
-                | (.headRefName | if test($re) then capture($re).type else "none" end)
-              ]
-              | unique[]
-            ' \
-          | while read -r prerelease; do
-            echo "::notice::Dispatching Release with prerelease=${prerelease}"
-
-            gh workflow run release.yml \
-              --ref main \
-              --raw-field prerelease="${prerelease}"
-          done
+      - name: Dispatch Release for every open release PR
+        if: steps.push.outputs.rebuild == 'true'
+        uses: $/.github/actions/dispatch-release-rebuilds
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

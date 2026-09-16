@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Dispatch release rebuilds
+description: Dispatch the Release workflow once per pre-release type that has an open release PR
+
+inputs:
+  token:
+    description: Token to list pull requests and dispatch workflows with, needs pull-requests:read and actions:write
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Dispatch Release for every open release PR
+      shell: bash
+      env:
+        GH_REPO: ${{ github.repository }} # the caller has no checkout, so gh cannot infer the repository from a git remote
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        # Release's concurrency group is keyed on the pre-release type, so a second dispatch of the same type would just queue.
+        # release/v1.2.3 -> none, release/v1.2.3-alpha.1 -> alpha
+        gh pr list \
+          --state open \
+          --limit 100 \
+          --json headRefName \
+        | jq --raw-output --arg re '-(?<type>alpha|beta|rc)\.[0-9]+$' '
+            [ .[]
+              | select(.headRefName | startswith("release/v"))
+              | (.headRefName | if test($re) then capture($re).type else "none" end)
+            ]
+            | unique[]
+          ' \
+        | while read -r prerelease; do
+          echo "::notice::Dispatching Release with prerelease=${prerelease}"
+
+          gh workflow run release.yml \
+            --ref main \
+            --raw-field prerelease="${prerelease}"
+        done
