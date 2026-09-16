@@ -13,7 +13,7 @@ inputs:
     description: File of commit SHAs the changelog lists
     required: true
   merged-since:
-    description: ISO 8601 timestamp of the previous release, empty when there is none
+    description: UTC timestamp of the previous release, empty when there is none
     required: false
     default: ""
 

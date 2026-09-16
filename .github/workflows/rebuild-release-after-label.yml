@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       actions: write # to dispatch the Release workflow and re-run Verify
-      pull-requests: write # to list open release PRs and convert them to drafts
+      pull-requests: read # to list open release PRs
     # An unmerged PR is in no release range yet
     if: |
       github.event.label.name == 'changelog: show' &&
@@ -30,7 +30,8 @@ jobs:
         shell: bash
         env:
           GH_REPO: ${{ github.repository }} # no checkout, so gh cannot infer the repository from a git remote
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN cannot convert a pull request to a draft
+          GH_TOKEN: ${{ secrets.TOKEN_TO_TRIGGER_SUBSEQUENT_WORKFLOWS }}
         run: |
           # The release commit is stale until the rebuild lands, a draft cannot be merged
           gh pr list --state open --limit 100 --json number,headRefName --jq '.[] | select(.headRefName | startswith("release/v")) | .number' \
