@@ -1,0 +1,120 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Render release preview
+description: Render the release PR body with the listed entries, the hidden ones, and the searches to label them
+
+inputs:
+  context-file:
+    description: git-cliff context JSON listing every entry in range
+    required: true
+  compare-to:
+    description: Ref the changelog's compare link points at
+    required: true
+  shown-file:
+    description: File of commit SHAs the changelog lists
+    required: true
+  merged-since:
+    description: ISO 8601 timestamp of the previous release, empty when there is none
+    required: false
+    default: ""
+
+outputs:
+  body-file:
+    description: Path to the rendered pull request body
+    value: ${{ steps.render.outputs.body-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Render preview
+      id: render
+      shell: bash
+      env:
+        CONTEXT_FILE: ${{ inputs.context-file }}
+        COMPARE_TO: ${{ inputs.compare-to }}
+        SHOWN_FILE: ${{ inputs.shown-file }}
+        MERGED_SINCE: ${{ inputs.merged-since }}
+      run: |
+        body_file="${RUNNER_TEMP}/preview-body.md"
+
+        # The release tag does not exist until the PR is merged, so the compare link points at the release branch instead
+        jq --arg sha "${COMPARE_TO}" '.[0].extra = {compare_to: $sha}' "${CONTEXT_FILE}" > "${RUNNER_TEMP}/context.json"
+
+        jq --raw-input --slurp 'split("\n") | map(select(length > 0))' "${SHOWN_FILE}" > "${RUNNER_TEMP}/shown.json"
+
+        jq --slurpfile shown "${RUNNER_TEMP}/shown.json" '.[0].commits |= map(select(.id | IN($shown[0][])))' "${RUNNER_TEMP}/context.json" > "${RUNNER_TEMP}/shown-context.json"
+        git-cliff --from-context "${RUNNER_TEMP}/shown-context.json" --output "${RUNNER_TEMP}/shown.md"
+
+        # An entry without a PR cannot be labeled, so the hidden list leaves it out
+        jq --slurpfile shown "${RUNNER_TEMP}/shown.json" '.[0].commits |= map(select((.id | IN($shown[0][]) | not) and .remote.pr_number != null))' "${RUNNER_TEMP}/context.json" > "${RUNNER_TEMP}/hidden-context.json"
+        git-cliff --from-context "${RUNNER_TEMP}/hidden-context.json" --output "${RUNNER_TEMP}/hidden.md"
+
+        # Drop the template's header and footer
+        sed --in-place '/^<!--/d' "${RUNNER_TEMP}/shown.md" "${RUNNER_TEMP}/hidden.md"
+
+        # The hidden entries get their own heading below
+        sed --in-place '0,/^## /{/^## /d}' "${RUNNER_TEMP}/hidden.md"
+
+        query="is:pr is:merged base:main"
+        if [ -n "${MERGED_SINCE}" ]; then
+          query="${query} merged:>=${MERGED_SINCE}"
+        fi
+
+        pulls_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pulls"
+        unlabeled_url="${pulls_url}?q=$(jq --null-input --raw-output --arg q "${query} -label:\"changelog: show\"" '$q | @uri')"
+        labeled_url="${pulls_url}?q=$(jq --null-input --raw-output --arg q "${query} label:\"changelog: show\"" '$q | @uri')"
+
+        {
+          cat <<'INSTRUCTIONS'
+        > [!NOTE]
+        > An entry is listed when its PR carries the `changelog: show` label. Adding or removing the label on a merged PR turns this PR into a draft and rebuilds the release commit.
+        > A hidden entry is still part of the release and counts toward the version.
+        > A push to `main` rebuilds the release commit with the new entries and turns auto-merge off.
+        > Merge the PR once the selection is final. The Verify changelog selection check stays red until the rebuild has caught up with the labels.
+
+        INSTRUCTIONS
+          printf -- '- [Merged PRs not yet labeled](%s)\n- [Labeled PRs](%s)\n\n' "${unlabeled_url}" "${labeled_url}"
+          cat "${RUNNER_TEMP}/shown.md"
+
+          if grep --quiet '^- ' "${RUNNER_TEMP}/hidden.md"; then
+            printf '\n## Hidden\n'
+            cat "${RUNNER_TEMP}/hidden.md"
+          fi
+        } > "${body_file}"
+
+        # The body is cut at a line boundary when it exceeds GitHub's PR body limit
+        max_length=65536
+        marker_template=$'\n\n---\n\n> [!NOTE]\n> COUNT more entries did not fit in GitHub\'s 65,536 character body limit. They are not shown here, the changelog itself is complete.'
+        body=$(< "${body_file}")
+
+        if [ "${#body}" -gt "${max_length}" ]; then
+          # The dropped count has at most as many digits as the total count, so a budget computed with the total fits the final marker
+          total_entries=$(grep --count '^- ' "${body_file}" || true)
+          bound_marker="${marker_template/COUNT/${total_entries}}"
+          budget=$(( max_length - ${#bound_marker} ))
+
+          kept_lines=0
+          kept_length=0
+          dropped_entries=0
+          cutting=0
+
+          while IFS= read -r line; do
+            if [ "${cutting}" -eq 0 ] && [ $(( kept_length + ${#line} + 1 )) -le "${budget}" ]; then
+              kept_length=$(( kept_length + ${#line} + 1 ))
+              kept_lines=$(( kept_lines + 1 ))
+            else
+              cutting=1
+
+              case "${line}" in
+                "- "*) dropped_entries=$(( dropped_entries + 1 )) ;;
+              esac
+            fi
+          done < "${body_file}"
+
+          {
+            head --lines="${kept_lines}" "${body_file}"
+            printf '%s' "${marker_template/COUNT/${dropped_entries}}"
+          } > "${body_file}.truncated"
+          mv "${body_file}.truncated" "${body_file}"
+        fi
+
+        echo "body-file=${body_file}" >> "${GITHUB_OUTPUT}"
