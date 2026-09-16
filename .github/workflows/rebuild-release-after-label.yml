@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Rebuild release after label change
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] nothing is checked out, the job only edits release PRs and dispatches Release
+    types:
+      - labeled
+      - unlabeled
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}"
+  cancel-in-progress: true # the newer run dispatches against the same labels
+
+jobs:
+  rebuild:
+    name: Dispatch Release
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: write # to dispatch the Release workflow and re-run Verify
+      pull-requests: write # to list open release PRs and convert them to drafts
+    # An unmerged PR is in no release range yet
+    if: |
+      github.event.label.name == 'changelog: show' &&
+      github.event.pull_request.merged == true
+    steps:
+      - name: Block merging until the rebuild has landed
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }} # no checkout, so gh cannot infer the repository from a git remote
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The release commit is stale until the rebuild lands, a draft cannot be merged
+          gh pr list --state open --limit 100 --json number,headRefName --jq '.[] | select(.headRefName | startswith("release/v")) | .number' \
+          | while read -r pr_number; do
+            gh pr ready --undo "${pr_number}"
+          done
+
+      - name: Re-run Verify against the changed labels
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }} # no checkout, so gh cannot infer the repository from a git remote
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Re-run against the current labels, so the check goes red before the rebuild lands
+          gh pr list --state open --limit 100 --json headRefName --jq '.[] | select(.headRefName | startswith("release/v")) | .headRefName' \
+          | while read -r branch; do
+            run_id=$(gh run list --workflow verify-changelog-selection.yml --branch "${branch}" --status completed --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+
+            if [ -n "${run_id}" ]; then
+              gh run rerun "${run_id}"
+            fi
+          done
+
+      - name: Dispatch Release
+        uses: $/.github/actions/dispatch-release-rebuilds
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
