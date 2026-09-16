@@ -87,7 +87,7 @@ jobs:
 
           merged_since=""
           if [ -n "${latest_tag}" ]; then
-            merged_since=$(git log --max-count=1 --format=%cI "${latest_tag}")
+            merged_since=$(TZ=UTC git log --max-count=1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd "${latest_tag}")
           fi
           echo "merged_since=${merged_since}" >> "${GITHUB_OUTPUT}"
 
@@ -185,7 +185,7 @@ jobs:
             GH_TOKEN="${DEFAULT_TOKEN}" gh pr merge "${existing_pr}" --disable-auto
 
             # Undo the draft set by rebuild-release-after-label.yml
-            GH_TOKEN="${DEFAULT_TOKEN}" gh pr ready "${existing_pr}"
+            gh pr ready "${existing_pr}"
           else
             # Opening the PR with GITHUB_TOKEN would not start the required check workflows, so the PAT is used here
             gh pr create \
