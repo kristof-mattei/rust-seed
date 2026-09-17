@@ -54,3 +54,39 @@ jobs:
             echo "The commit(s) above do not match '<type>(<scope>)!: <description>' with a lowercase type and scope"
             exit 1
           fi
+
+      - name: Enforce a title tier matching the commits
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # The title is the changelog entry and the commits set the version, so both have to agree on breaking, feature, fix, or none.
+          tiers=("no version change" "a fix" "a feature" "a breaking change")
+
+          tier_of() {
+            case "${1%%: *}" in
+              *!) echo 3 ;;
+              feat | feat\(*) echo 2 ;;
+              fix | fix\(*) echo 1 ;;
+              *) echo 0 ;;
+            esac
+          }
+
+          commits_tier=0
+          while IFS= read -r subject; do
+            tier=$(tier_of "${subject}")
+            if [ "${tier}" -gt "${commits_tier}" ]; then
+              commits_tier=${tier}
+            fi
+          done < <(git log --no-merges --format=%s "origin/${GITHUB_BASE_REF}..HEAD")
+
+          if git log --no-merges --format=%B "origin/${GITHUB_BASE_REF}..HEAD" | grep --quiet --extended-regexp '^BREAKING[ -]CHANGE: '; then
+            commits_tier=3
+          fi
+
+          title_tier=$(tier_of "${PR_TITLE}")
+
+          if [ "${title_tier}" -ne "${commits_tier}" ]; then
+            echo "The title '${PR_TITLE}' declares ${tiers[title_tier]}, the commits amount to ${tiers[commits_tier]}"
+            exit 1
+          fi

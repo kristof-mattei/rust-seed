@@ -1,11 +1,12 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Rebuild release after label change
+name: Rebuild release after label or title change
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] nothing is checked out, the job only edits release PRs and dispatches Release
     types:
       - labeled
       - unlabeled
+      - edited
 
 permissions:
   contents: read
@@ -21,10 +22,10 @@ jobs:
     permissions:
       actions: write # to dispatch the Release workflow and re-run Verify
       pull-requests: read # to list open release PRs
-    # An unmerged PR is in no release range yet
+    # An unmerged PR is in no release range yet, and an edit of the body changes no entry
     if: |
-      github.event.label.name == 'changelog: show' &&
-      github.event.pull_request.merged == true
+      github.event.pull_request.merged == true &&
+      (github.event.label.name == 'changelog: show' || github.event.changes.title != null)
     steps:
       - name: Block merging until the rebuild has landed
         shell: bash
