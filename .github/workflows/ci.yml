@@ -206,15 +206,12 @@ jobs:
         run: |
           latest_tag=$(git describe --tags --abbrev=0 || true)
 
-          # git-cliff also applies .cliffignore to --bumped-version, so the release branch's copy would hide commits from the version bump
-          rm --force .cliffignore
-
-          bumped=$(git-cliff --bumped-version --unreleased --offline)
+          bumped=$(git-cliff --config cliff-version.toml --bumped-version --unreleased --offline)
 
           # If git-cliff didn't bump (e.g. chore/ci only commits), force a patch increment
           # so we never tag a Docker image with the same version as the last release.
           if [ "${bumped}" = "${latest_tag}" ]; then
-            bumped=$(git-cliff --bumped-version --bump patch --unreleased --offline)
+            bumped=$(git-cliff --config cliff-version.toml --bumped-version --bump patch --unreleased --offline)
             echo "Force bumping to ${bumped}"
           fi
 
