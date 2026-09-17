@@ -7,7 +7,7 @@ inputs:
     description: Tag of the release
     required: true
   token:
-    description: Token to list the labeled pull requests with, needs pull-requests:read in a private repository
+    description: Token to list the pull requests with, needs pull-requests:read in a private repository
     required: true
 
 outputs:
@@ -29,9 +29,11 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
+        # git-cliff reads GITHUB_TOKEN from the environment
+        GITHUB_TOKEN: ${{ inputs.token }}
         TAG: ${{ inputs.tag }}
       run: |
-        git-cliff --context --unreleased --offline --tag "${TAG}" | jq --raw-output '.[0].commits[].id' | sort --unique > "${RUNNER_TEMP}/entries.txt"
+        git-cliff --context --unreleased --tag "${TAG}" | jq --raw-output '.[0].commits[].id' | sort --unique > "${RUNNER_TEMP}/entries.txt"
 
         gh pr list --state merged --base main --label "changelog: show" --limit 1000 --json mergeCommit --jq '.[].mergeCommit.oid' | sort --unique > "${RUNNER_TEMP}/shown.txt"
 

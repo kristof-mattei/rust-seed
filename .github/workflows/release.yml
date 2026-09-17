@@ -63,12 +63,12 @@ jobs:
             exit 1
           fi
 
-          version=$(git-cliff --bumped-version --bump auto --unreleased --offline)
+          version=$(git-cliff --config cliff-version.toml --bumped-version --bump auto --unreleased --offline)
 
           # If git-cliff didn't bump (e.g. chore/ci only commits), force a patch increment
           # so we never release the same version as the last tag.
           if [ "${version}" = "${latest_tag}" ]; then
-            version=$(git-cliff --bumped-version --bump patch --unreleased --offline)
+            version=$(git-cliff --config cliff-version.toml --bumped-version --bump patch --unreleased --offline)
             echo "::notice::No conventional bump detected, forcing patch bump"
           fi
 
@@ -91,7 +91,14 @@ jobs:
           fi
           echo "merged_since=${merged_since}" >> "${GITHUB_OUTPUT}"
 
-          git-cliff --context --unreleased --tag "${version}" > release-context.json
+          # The entry text is the PR title: the description becomes the message, scope and breaking marker come from the prefix
+          git-cliff --context --unreleased --tag "${version}" \
+          | jq '.[0].commits |= map(
+              (.remote.pr_title | capture("^[a-z]+(\\((?<scope>[a-z0-9-]+)\\))?(?<breaking>!)?: (?<description>.+)$") // {description: .}) as $title
+              | .message = $title.description
+              | .scope = $title.scope
+              | .breaking = ($title.breaking != null)
+            )' > release-context.json
 
       - name: List open release PRs
         shell: bash
@@ -123,23 +130,14 @@ jobs:
         id: changelog
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # git-cliff reads GITHUB_TOKEN from the environment
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.release.outputs.version }}
         run: |
           # The version above counted every entry, the label only decides which ones the changelog lists
-          jq --raw-output '.[0].commits[].id' release-context.json | sort --unique > "${RUNNER_TEMP}/entries.txt"
-
           gh pr list --state merged --base main --label "changelog: show" --limit 1000 --json mergeCommit --jq '.[].mergeCommit.oid' | sort --unique > "${RUNNER_TEMP}/shown.txt"
 
-          grep --fixed-strings --line-regexp --invert-match --file "${RUNNER_TEMP}/shown.txt" "${RUNNER_TEMP}/entries.txt" > "${RUNNER_TEMP}/hidden.txt" || true
+          jq --raw-input --slurp 'split("\n") | map(select(length > 0))' "${RUNNER_TEMP}/shown.txt" > "${RUNNER_TEMP}/shown.json"
+          jq --slurpfile shown "${RUNNER_TEMP}/shown.json" '.[0].commits |= map(select(.id | IN($shown[0][])))' release-context.json > "${RUNNER_TEMP}/shown-context.json"
 
-          skip_args=()
-          while IFS= read -r sha; do
-            skip_args+=("--skip-commit=${sha}")
-          done < "${RUNNER_TEMP}/hidden.txt"
-
-          git-cliff --prepend CHANGELOG.md --unreleased --tag "${VERSION}" "${skip_args[@]}"
+          git-cliff --from-context "${RUNNER_TEMP}/shown-context.json" --prepend CHANGELOG.md --unreleased
 
           echo "shown-file=${RUNNER_TEMP}/shown.txt" >> "${GITHUB_OUTPUT}"
 
