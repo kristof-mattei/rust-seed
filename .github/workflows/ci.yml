@@ -388,6 +388,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
+      id-token: write # sccache in the `Dockerfile` authenticates to Azure over OIDC
       packages: write # push the build cache to ghcr.io
     needs:
       - calculate-version
@@ -504,6 +505,11 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           provenance: mode=max
           sbom: true
+          secret-envs: |
+            ACTIONS_ID_TOKEN_REQUEST_TOKEN=ACTIONS_ID_TOKEN_REQUEST_TOKEN
+            ACTIONS_ID_TOKEN_REQUEST_URL=ACTIONS_ID_TOKEN_REQUEST_URL
+          secret-files: |
+            sccache-azure-env=.github/actions/set-up-sccache/azure.env
           tags: ${{ steps.meta.outputs.tags }}
 
       - name: Upload artifact
@@ -833,10 +839,9 @@ jobs:
       artifact-metadata: write # actions/attest
       attestations: write # actions/attest
       contents: read
-      id-token: write # actions/attest
+      id-token: write # actions/attest, and sccache authenticates to Azure over OIDC
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_GHA_ENABLED: "true"
     needs:
       - calculate-version
       - prepare-variables
@@ -866,7 +871,7 @@ jobs:
           cargo --version
 
       - name: Set up sccache
-        uses: mozilla-actions/sccache-action@v0.0.11
+        uses: $/.github/actions/set-up-sccache
 
       - name: Install cargo-deb
         uses: taiki-e/install-action@v2.90.3

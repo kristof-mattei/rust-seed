@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Set up sccache
+description: Install sccache and start its server with the Azure Blob Storage cache
+
+runs:
+  using: composite
+  steps:
+    - name: Install sccache
+      uses: mozilla-actions/sccache-action@v0.0.11 # zizmor: ignore[unpinned-uses]
+
+    - name: Write the OIDC token for Entra ID
+      uses: actions/github-script@v9.0.0 # zizmor: ignore[unpinned-uses]
+      with:
+        script: |
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP, "azure-federated-token"), await core.getIDToken("api://AzureADTokenExchange"));
+
+    - name: Start the sccache server while the OIDC token is valid
+      shell: bash
+      env:
+        # a server started by a later sccache call has no Azure settings
+        SCCACHE_IDLE_TIMEOUT: "0"
+      run: |
+        set -o allexport
+        . "${GITHUB_ACTION_PATH}/azure.env"
+        set +o allexport
+
+        AZURE_FEDERATED_TOKEN_FILE="${RUNNER_TEMP}/azure-federated-token" sccache --start-server

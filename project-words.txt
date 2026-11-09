@@ -16,6 +16,7 @@ grcov
 headgreen
 idents
 kristof
+kristofmatteisccache
 lintian
 mattei
 mimalloc
@@ -49,6 +50,7 @@ taiki
 targetplatformdash
 telem
 tera
+tmpfs
 topo
 tostring
 trixie

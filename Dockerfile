@@ -10,6 +10,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get upgrade --yes \
     && apt-get install --no-install-recommends --yes \
+        curl \
+        jq \
         patch \
         xz-utils \
     && rm --recursive --force /var/lib/apt/lists/*
@@ -33,6 +35,16 @@ RUN tar --extract --gzip --no-same-owner --strip-components 2 \
         --file "/tmp/mold-$(uname --machine).tar.gz" \
         --wildcards "*/bin/mold" \
     && rm /tmp/mold-*.tar.gz
+
+# trixie only has sccache 0.10.0, we need >= 0.18.0 for Entra ID authentication
+ADD --checksum=sha256:aa73c7270c997894038c0d8f0d297865f57569e1687883322bc431713d4bb9dd https://github.com/mozilla/sccache/releases/download/v0.19.0/sccache-v0.19.0-x86_64-unknown-linux-musl.tar.gz /tmp/sccache-x86_64.tar.gz
+ADD --checksum=sha256:3e47fc4a71b1ddd1b4294a0de9d34498922fdf41e3cd0bda5df3954e3d6deb9d https://github.com/mozilla/sccache/releases/download/v0.19.0/sccache-v0.19.0-aarch64-unknown-linux-musl.tar.gz /tmp/sccache-aarch64.tar.gz
+
+RUN tar --extract --gzip --no-same-owner --strip-components 1 \
+        --directory /usr/local/bin \
+        --file "/tmp/sccache-$(uname --machine).tar.gz" \
+        --wildcards "*/sccache" \
+    && rm /tmp/sccache-*.tar.gz
 
 ENV CC_x86_64_unknown_linux_musl=x86_64-linux-musl-gcc \
     CC_aarch64_unknown_linux_musl=aarch64-linux-musl-gcc \
@@ -91,7 +103,23 @@ WORKDIR /build
 
 RUN cargo fetch --locked
 
-RUN cargo auditable build --frozen --release --target "${TARGET}"
+# the tmpfs keeps the OIDC token out of the layer
+RUN --mount=type=secret,id=ACTIONS_ID_TOKEN_REQUEST_TOKEN,env=ACTIONS_ID_TOKEN_REQUEST_TOKEN \
+    --mount=type=secret,id=ACTIONS_ID_TOKEN_REQUEST_URL,env=ACTIONS_ID_TOKEN_REQUEST_URL \
+    --mount=type=secret,id=sccache-azure-env,target=/run/secrets/sccache-azure.env \
+    --mount=type=tmpfs,target=/run/sccache \
+    if [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then \
+        set -o allexport \
+        && . /run/secrets/sccache-azure.env \
+        && set +o allexport \
+        && curl --fail --silent --show-error --output /run/sccache/oidc.json \
+            --header "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api://AzureADTokenExchange" \
+        && jq --raw-output '.value' /run/sccache/oidc.json > /run/sccache/azure-federated-token \
+        && export AZURE_FEDERATED_TOKEN_FILE=/run/sccache/azure-federated-token RUSTC_WRAPPER=sccache; \
+    fi \
+    && cargo auditable build --frozen --release --target "${TARGET}" \
+    && if [ -n "${RUSTC_WRAPPER:-}" ]; then sccache --stop-server; fi
 
 # Rust full build
 FROM rust-cargo-build AS rust-build
